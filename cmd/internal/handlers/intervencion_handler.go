@@ -6,9 +6,11 @@ import (
 	"proyecto/cmd/internal/models"
 	"proyecto/cmd/internal/storage"
 	"strconv"
+
+	"github.com/go-chi/chi/v5"
 )
 
-// Listamos todas las intervenciones
+// Listamos todas las intervenciones (GET /intervenciones)
 
 func GetAllIntervenciones(w http.ResponseWriter, r *http.Request) {
 	storage.Mu.Lock()
@@ -19,7 +21,7 @@ func GetAllIntervenciones(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(storage.Intervenciones)
 }
 
-// Creamos una intervención nueva
+// Creamos una intervención nueva(POST /intervenciones)
 
 func CreateIntervencion(w http.ResponseWriter, r *http.Request) {
 	var nueva models.Intervencion
@@ -44,4 +46,25 @@ func CreateIntervencion(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated) // 201 Created
 	json.NewEncoder(w).Encode(nueva)
+}
+
+//Obtener una intervención por ID (GET /intervenciones/{id})
+
+func GetIntervencionPorID(w http.ResponseWriter, r *http.Request) {
+	// Usamos Chi para extraer el ID directamente de la URL
+	idParam := chi.URLParam(r, "id")
+
+	storage.Mu.Lock()
+	defer storage.Mu.Unlock()
+
+	for _, intervencion := range storage.Intervenciones {
+		if intervencion.ID == idParam {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK) // 200 OK
+			json.NewEncoder(w).Encode(intervencion)
+			return
+		}
+	}
+	// Si termina el bucle y no la encuentra, enviamos 404
+	http.Error(w, "Intervención no encontrada", http.StatusNotFound)
 }
