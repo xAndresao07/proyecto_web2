@@ -71,7 +71,7 @@ func GetIntervencionPorID(w http.ResponseWriter, r *http.Request) {
 
 //Actualizar intervencion (PUT /intervenciones/{id})
 
-func UpdateIntevencion(w http.ResponseWriter, r *http.Request) {
+func UpdateIntervencion(w http.ResponseWriter, r *http.Request) {
 	idParam := chi.URLParam(r, "id")
 
 	var datosActualizados models.Intervencion
