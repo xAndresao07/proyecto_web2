@@ -106,3 +106,23 @@ func UpdateIntevencion(w http.ResponseWriter, r *http.Request) {
 	}
 	http.Error(w, "Intervencion no encontrada para poderla actualizar", http.StatusNotFound) // 404 Not Found
 }
+
+// Eliminar una intervención (DELETE /intervenciones/{id})
+
+func DeleteIntervencion(w http.ResponseWriter, r *http.Request) {
+	idParam := chi.URLParam(r, "id")
+
+	storage.Mu.Lock()
+	defer storage.Mu.Unlock()
+
+	for i, intervencion := range storage.Intervenciones {
+		if intervencion.ID == idParam {
+			// Rebanamos el slice: tomamos lo de antes del elemento 'i' y lo unimos con lo de después
+			storage.Intervenciones = append(storage.Intervenciones[:i], storage.Intervenciones[i+1:]...)
+
+			w.WriteHeader(http.StatusNoContent) // 204 No Content (Borrado exitoso)
+			return
+		}
+	}
+	http.Error(w, "Intervencion no encontrada para poderla eliminar", http.StatusNotFound) // 404 not found
+}
