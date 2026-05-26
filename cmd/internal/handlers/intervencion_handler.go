@@ -68,3 +68,41 @@ func GetIntervencionPorID(w http.ResponseWriter, r *http.Request) {
 	// Si termina el bucle y no la encuentra, enviamos 404
 	http.Error(w, "Intervención no encontrada", http.StatusNotFound)
 }
+
+//Actualizar intervencion (PUT /intervenciones/{id})
+
+func UpdateIntevencion(w http.ResponseWriter, r *http.Request) {
+	idParam := chi.URLParam(r, "id")
+
+	var datosActualizados models.Intervencion
+	if err := json.NewDecoder(r.Body).Decode(&datosActualizados); err != nil {
+		http.Error(w, "Error decodificando la solicitud: ", http.StatusBadRequest)
+		return
+	}
+
+	if datosActualizados.Estado == "" && datosActualizados.HoraAcordada == "" {
+		http.Error(w, "Debe enviar al menos un campo para actualizar (Estado u HoraAcordada)", http.StatusBadRequest)
+		return
+	}
+
+	storage.Mu.Lock()
+	defer storage.Mu.Unlock()
+
+	for i, intervencion := range storage.Intervenciones {
+		if intervencion.ID == idParam {
+			// Actualizamos solo los datos permitidos, sin tocar los IDs de los usuarios
+			datosActualizados.ID = idParam
+			datosActualizados.SolicitanteID = intervencion.SolicitanteID
+			datosActualizados.TecnicoID = intervencion.TecnicoID
+
+			// Reemplazamos en el slice usando el índice 'i'
+			storage.Intervenciones[i] = datosActualizados
+
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode(datosActualizados)
+			return
+		}
+	}
+	http.Error(w, "Intervencion no encontrada para poderla actualizar", http.StatusNotFound) // 404 Not Found
+}
