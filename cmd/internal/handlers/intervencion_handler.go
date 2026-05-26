@@ -95,6 +95,16 @@ func UpdateIntervencion(w http.ResponseWriter, r *http.Request) {
 			datosActualizados.SolicitanteID = intervencion.SolicitanteID
 			datosActualizados.TecnicoID = intervencion.TecnicoID
 
+			if datosActualizados.PuntoEncuentro == "" {
+				datosActualizados.PuntoEncuentro = intervencion.PuntoEncuentro
+			}
+			if datosActualizados.Estado == "" {
+				datosActualizados.Estado = intervencion.Estado
+			}
+			if datosActualizados.HoraAcordada == "" {
+				datosActualizados.HoraAcordada = intervencion.HoraAcordada
+			}
+
 			// Reemplazamos en el slice usando el índice 'i'
 			storage.Intervenciones[i] = datosActualizados
 
