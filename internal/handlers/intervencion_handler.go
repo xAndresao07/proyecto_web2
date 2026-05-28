@@ -3,8 +3,8 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
-	"proyecto/cmd/internal/models"
-	"proyecto/cmd/internal/storage"
+	"proyecto/internal/models"
+	"proyecto/internal/storage"
 	"strconv"
 
 	"github.com/go-chi/chi/v5"

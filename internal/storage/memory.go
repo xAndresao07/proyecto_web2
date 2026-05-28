@@ -1,7 +1,7 @@
 package storage
 
 import (
-	"proyecto/cmd/internal/models"
+	"proyecto/internal/models"
 	"sync"
 )
 
