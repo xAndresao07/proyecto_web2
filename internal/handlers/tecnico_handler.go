@@ -24,6 +24,11 @@ func CreateTecnico(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if nuevo.Nombre == "" || len(nuevo.Habilidades) == 0 {
+		http.Error(w, "El nombre y al menos una habilidad son obligatorios", http.StatusBadRequest)
+		return
+	}
+
 	storage.Mu.Lock()
 	nuevo.ID = strconv.Itoa(storage.SiguienteID)
 	storage.SiguienteID++
