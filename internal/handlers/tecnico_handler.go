@@ -29,6 +29,7 @@ func CreateTecnico(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	nuevo.Reputacion = 5.0
 	storage.Mu.Lock()
 	nuevo.ID = strconv.Itoa(storage.SiguienteID)
 	storage.SiguienteID++
