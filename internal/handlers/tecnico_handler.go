@@ -6,6 +6,8 @@ import (
 	"proyecto/internal/models"
 	"proyecto/internal/storage"
 	"strconv"
+
+	"github.com/go-chi/chi/v5"
 )
 
 func GetAllTecnicos(w http.ResponseWriter, r *http.Request) {
@@ -39,4 +41,21 @@ func CreateTecnico(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(nuevo)
+}
+
+func GetTecnicoPorID(w http.ResponseWriter, r *http.Request) {
+	idParam := chi.URLParam(r, "id")
+
+	storage.Mu.Lock()
+	defer storage.Mu.Unlock()
+
+	for _, tecnico := range storage.Tecnicos {
+		if tecnico.ID == idParam {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode(tecnico)
+			return
+		}
+	}
+	http.Error(w, "Técnico no encontrado", http.StatusNotFound)
 }
