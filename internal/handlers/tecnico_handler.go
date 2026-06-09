@@ -99,3 +99,19 @@ func UpdateTecnico(w http.ResponseWriter, r *http.Request) {
 	}
 	http.Error(w, "Técnico no encontrado", http.StatusNotFound)
 }
+
+func DeleteTecnico(w http.ResponseWriter, r *http.Request) {
+	idParam := chi.URLParam(r, "id")
+
+	storage.Mu.Lock()
+	defer storage.Mu.Unlock()
+
+	for i, tecnico := range storage.Tecnicos {
+		if tecnico.ID == idParam {
+			storage.Tecnicos = append(storage.Tecnicos[:i], storage.Tecnicos[i+1:]...)
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+	}
+	http.Error(w, "Técnico no encontrado", http.StatusNotFound)
+}
