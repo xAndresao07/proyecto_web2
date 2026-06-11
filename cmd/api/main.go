@@ -1,16 +1,21 @@
 package main
 
 import (
-	"fmt"
+	"log"
 	"net/http"
 
 	"proyecto/internal/handlers"
+	"proyecto/internal/storage"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 )
 
 func main() {
+
+	almacen := storage.NewMemoria()
+	almacen.Seed()
+	servidor := handlers.NewServer(almacen)
 	//Inicializamos el enrutador principal de Chi
 	r := chi.NewRouter()
 
@@ -24,13 +29,13 @@ func main() {
 	// Subrouter: Agrupamos todas las rutas del módulo bajo prefijos
 
 	r.Route("/api/v1/tecnicos", func(r chi.Router) {
-		r.Get("/", handlers.GetAllTecnicos)
-		r.Post("/", handlers.CreateTecnico)
-		r.Get("/{id}", handlers.GetTecnicoPorID)
-		r.Put("/{id}", handlers.UpdateTecnico)
-		r.Delete("/{id}", handlers.DeleteTecnico)
+		r.Get("/", servidor.GetAllTecnicos)
+		r.Post("/", servidor.CreateTecnico)
+		r.Get("/{id}", servidor.GetTecnicoPorID)
+		r.Put("/{id}", servidor.UpdateTecnico)
+		r.Delete("/{id}", servidor.DeleteTecnico)
 	})
 	// Iniciamos el servidor
-	fmt.Println("Servidor de Tecnicos desplegado y escuchando en el puerto 8080...")
-	http.ListenAndServe(":8080", r)
+	log.Println("Servidor escuchando en http://localhost:8080")
+	log.Fatal(http.ListenAndServe(":8080", r))
 }
