@@ -1,36 +1,43 @@
 package main
 
 import (
-	"fmt"
+	"log"
 	"net/http"
 
-	"proyecto/internal/handlers"
-
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/chi/v5/middleware" // Conservamos el paquete de middleware
+
+	"proyecto/internal/handlers"
+	"proyecto/internal/storage"
 )
 
 func main() {
-	//Inicializamos el enrutador principal de Chi
+	// 1. "Encendemos" el almacenamiento y cargamos las intervenciones semilla
+	almacen := storage.NewMemoria()
+	almacen.Seed()
+
+	// 2. Inyectamos la base de datos al controlador de tu módulo
+	servidor := handlers.NewServer(almacen)
+
+	// 3. Inicializamos el router principal de Chi
 	r := chi.NewRouter()
 
-	// Middlewares básicos recomendados
-	// Logger: Imprime en tu terminal cada vez que alguien hace una petición (útil para ver si funciona)
-	// Recoverer: Evita que el servidor se apague por completo si ocurre un error inesperado
-
+	// 4. Aplicamos los middlewares requeridos
+	// Logger: para ver cada petición en la terminal
+	// Recoverer: para que el servidor no "muera" si hay un error crítico
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
-	// Subrouter: Agrupamos todas las rutas del módulo bajo prefijos , ejemplo: /intervenciones
-
+	// 5. Agrupamos y registramos las rutas de tu módulo de intervenciones
 	r.Route("/api/v1/intervenciones", func(r chi.Router) {
-		r.Get("/", handlers.GetAllIntervenciones)
-		r.Post("/", handlers.CreateIntervencion)
-		r.Get("/{id}", handlers.GetIntervencionPorID)
-		r.Put("/{id}", handlers.UpdateIntervencion)
-		r.Delete("/{id}", handlers.DeleteIntervencion)
+		r.Get("/", servidor.ListarIntervenciones)
+		r.Post("/", servidor.CrearIntervencion)
+		r.Get("/{id}", servidor.ObtenerIntervencion)
+		r.Delete("/{id}", servidor.BorrarIntervencion)
+		r.Put("/{id}", servidor.ActualizarIntervencion)
 	})
-	// Iniciamos el servidor
-	fmt.Println("Servidor de Intervenciones desplegado y escuchando en el puerto 8080...")
-	http.ListenAndServe(":8080", r)
+
+	// 6. Levantamos el servidor
+	log.Println("Servidor escuchando en http://localhost:8080")
+	log.Fatal(http.ListenAndServe(":8080", r))
 }

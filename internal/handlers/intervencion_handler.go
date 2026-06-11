@@ -2,137 +2,136 @@ package handlers
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
-	"proyecto/internal/models"
-	"proyecto/internal/storage"
 	"strconv"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
+
+	"proyecto/internal/models"
+	"proyecto/internal/storage"
 )
 
-// Listamos todas las intervenciones (GET /intervenciones)
+// Server unifica los endpoints de intervenciones y recibe su almacenamiento (Memoria)
+type Server struct {
+	storage *storage.Memoria
+}
 
-func GetAllIntervenciones(w http.ResponseWriter, r *http.Request) {
-	storage.Mu.Lock()
-	defer storage.Mu.Unlock()
+// NewServer es el constructor que inyecta la base de datos en el controlador
+func NewServer(s *storage.Memoria) *Server {
+	return &Server{storage: s}
+}
+
+// 1. Listar todas las intervenciones (GET)
+func (s *Server) ListarIntervenciones(w http.ResponseWriter, _ *http.Request) {
+	intervenciones := s.storage.ListarIntervenciones()
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(storage.Intervenciones)
+	if err := json.NewEncoder(w).Encode(intervenciones); err != nil {
+		log.Printf("error codificando JSON: %v", err)
+	}
 }
 
-// Creamos una intervención nueva(POST /intervenciones)
-
-func CreateIntervencion(w http.ResponseWriter, r *http.Request) {
+// 2. Crear una intervención (POST)
+func (s *Server) CrearIntervencion(w http.ResponseWriter, r *http.Request) {
 	var nueva models.Intervencion
 	if err := json.NewDecoder(r.Body).Decode(&nueva); err != nil {
-		http.Error(w, "Error decodificando la solicitud: "+err.Error(), http.StatusBadRequest)
+		http.Error(w, "JSON inválido: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	if nueva.SolicitanteID == "" || nueva.TecnicoID == "" || nueva.HoraAcordada == "" || nueva.PuntoEncuentro == "" {
-		http.Error(w, "SolicitanteID, TecnicoID, HoraAcordada y PuntoEncuentro son obligatorios", http.StatusBadRequest) // error 400 Bad Request
+	// Validación de campos obligatorios básicos para el Hito 2
+	if strings.TrimSpace(nueva.SolicitanteID) == "" || strings.TrimSpace(nueva.TecnicoID) == "" || strings.TrimSpace(nueva.HoraAcordada) == "" || strings.TrimSpace(nueva.PuntoEncuentro) == "" {
+		http.Error(w, "SolicitanteID, TecnicoID, HoraAcordada y PuntoEncuentro son obligatorios", http.StatusBadRequest)
+		return
 	}
 
-	// Forzamos el estado inicial, por si el cliente intenta mandar otro estado
 	nueva.Estado = "pendiente"
 
-	storage.Mu.Lock()
-	nueva.ID = strconv.Itoa(storage.SiguienteID) // Asignamos un ID único
-	storage.SiguienteID++
-	storage.Intervenciones = append(storage.Intervenciones, nueva)
-	storage.Mu.Unlock()
+	nueva = s.storage.CrearIntervencion(nueva)
 
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated) // 201 Created
-	json.NewEncoder(w).Encode(nueva)
-}
-
-//Obtener una intervención por ID (GET /intervenciones/{id})
-
-func GetIntervencionPorID(w http.ResponseWriter, r *http.Request) {
-	// Usamos Chi para extraer el ID directamente de la URL
-	idParam := chi.URLParam(r, "id")
-
-	storage.Mu.Lock()
-	defer storage.Mu.Unlock()
-
-	for _, intervencion := range storage.Intervenciones {
-		if intervencion.ID == idParam {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusOK) // 200 OK
-			json.NewEncoder(w).Encode(intervencion)
-			return
-		}
+	w.WriteHeader(http.StatusCreated)
+	if err := json.NewEncoder(w).Encode(nueva); err != nil {
+		log.Printf("error codificando JSON: %v", err)
 	}
-	// Si termina el bucle y no la encuentra, enviamos 404
-	http.Error(w, "Intervención no encontrada", http.StatusNotFound)
 }
 
-//Actualizar intervencion (PUT /intervenciones/{id})
+// 3. Obtener intervención por ID (GET)
+func (s *Server) ObtenerIntervencion(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
 
-func UpdateIntervencion(w http.ResponseWriter, r *http.Request) {
-	idParam := chi.URLParam(r, "id")
-
-	var datosActualizados models.Intervencion
-	if err := json.NewDecoder(r.Body).Decode(&datosActualizados); err != nil {
-		http.Error(w, "Error decodificando la solicitud: ", http.StatusBadRequest)
+	// Convertimos el ID de texto de la URL a entero (int)
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "id debe ser un número entero", http.StatusBadRequest) // 400 Bad Request
 		return
 	}
 
-	if datosActualizados.Estado == "" && datosActualizados.HoraAcordada == "" {
-		http.Error(w, "Debe enviar al menos un campo para actualizar (Estado u HoraAcordada)", http.StatusBadRequest)
+	intervencion, encontrado := s.storage.BuscarIntervencionPorID(id)
+	if !encontrado {
+		http.Error(w, "intervención no encontrada", http.StatusNotFound) // 404 Not Found
 		return
 	}
 
-	storage.Mu.Lock()
-	defer storage.Mu.Unlock()
-
-	for i, intervencion := range storage.Intervenciones {
-		if intervencion.ID == idParam {
-			// Actualizamos solo los datos permitidos, sin tocar los IDs de los usuarios
-			datosActualizados.ID = idParam
-			datosActualizados.SolicitanteID = intervencion.SolicitanteID
-			datosActualizados.TecnicoID = intervencion.TecnicoID
-
-			if datosActualizados.PuntoEncuentro == "" {
-				datosActualizados.PuntoEncuentro = intervencion.PuntoEncuentro
-			}
-			if datosActualizados.Estado == "" {
-				datosActualizados.Estado = intervencion.Estado
-			}
-			if datosActualizados.HoraAcordada == "" {
-				datosActualizados.HoraAcordada = intervencion.HoraAcordada
-			}
-
-			// Reemplazamos en el slice usando el índice 'i'
-			storage.Intervenciones[i] = datosActualizados
-
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(datosActualizados)
-			return
-		}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(intervencion); err != nil {
+		log.Printf("error codificando JSON: %v", err)
 	}
-	http.Error(w, "Intervencion no encontrada para poderla actualizar", http.StatusNotFound) // 404 Not Found
 }
 
-// Eliminar una intervención (DELETE /intervenciones/{id})
+// 4. Actualizar intervención (PUT)
+func (s *Server) ActualizarIntervencion(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
 
-func DeleteIntervencion(w http.ResponseWriter, r *http.Request) {
-	idParam := chi.URLParam(r, "id")
-
-	storage.Mu.Lock()
-	defer storage.Mu.Unlock()
-
-	for i, intervencion := range storage.Intervenciones {
-		if intervencion.ID == idParam {
-			// Rebanamos el slice: tomamos lo de antes del elemento 'i' y lo unimos con lo de después
-			storage.Intervenciones = append(storage.Intervenciones[:i], storage.Intervenciones[i+1:]...)
-
-			w.WriteHeader(http.StatusNoContent) // 204 No Content (Borrado exitoso)
-			return
-		}
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "id debe ser un número entero", http.StatusBadRequest)
+		return
 	}
-	http.Error(w, "Intervencion no encontrada para poderla eliminar", http.StatusNotFound) // 404 not found
+
+	var datos models.Intervencion
+	if err := json.NewDecoder(r.Body).Decode(&datos); err != nil {
+		http.Error(w, "JSON inválido: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if strings.TrimSpace(datos.Estado) == "" && strings.TrimSpace(datos.HoraAcordada) == "" && strings.TrimSpace(datos.PuntoEncuentro) == "" {
+		http.Error(w, "debe enviar al menos un campo para actualizar", http.StatusBadRequest)
+		return
+	}
+
+	actualizada, encontrado := s.storage.ActualizarIntervencion(id, datos)
+	if !encontrado {
+		http.Error(w, "intervención no encontrada para actualizar", http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(actualizada); err != nil {
+		log.Printf("error codificando JSON: %v", err)
+	}
+}
+
+// 5. Eliminar intervención (DELETE)
+func (s *Server) BorrarIntervencion(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "id debe ser un número entero", http.StatusBadRequest)
+		return
+	}
+
+	seBorro := s.storage.EliminarIntervencion(id)
+	if !seBorro {
+		http.Error(w, "intervención no encontrada para eliminar", http.StatusNotFound)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent) // 204 No Content
 }
