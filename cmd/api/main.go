@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware" // Conservamos el paquete de middleware
+	"github.com/go-chi/chi/v5/middleware"
 
 	"proyecto/internal/handlers"
 	"proyecto/internal/storage"
@@ -30,11 +30,11 @@ func main() {
 
 	// 5. Agrupamos y registramos las rutas de tu módulo de intervenciones
 	r.Route("/api/v1/intervenciones", func(r chi.Router) {
-		r.Get("/", servidor.ListarIntervenciones)
-		r.Post("/", servidor.CrearIntervencion)
-		r.Get("/{id}", servidor.ObtenerIntervencion)
-		r.Delete("/{id}", servidor.BorrarIntervencion)
-		r.Put("/{id}", servidor.ActualizarIntervencion)
+		r.Get("/", servidor.ListarCitas)
+		r.Post("/", servidor.CrearCita)
+		r.Get("/{id}", servidor.ObtenerCita)
+		r.Delete("/{id}", servidor.EliminarCita)
+		r.Put("/{id}", servidor.ActualizarCita)
 	})
 
 	// 6. Levantamos el servidor

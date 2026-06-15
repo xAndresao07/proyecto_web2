@@ -24,19 +24,19 @@ func NewServer(s *storage.Memoria) *Server {
 }
 
 // 1. Listar todas las intervenciones (GET)
-func (s *Server) ListarIntervenciones(w http.ResponseWriter, _ *http.Request) {
-	intervenciones := s.storage.ListarIntervenciones()
+func (s *Server) ListarCitas(w http.ResponseWriter, _ *http.Request) {
+	citas := s.storage.ListarCitas()
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(w).Encode(intervenciones); err != nil {
+	if err := json.NewEncoder(w).Encode(citas); err != nil {
 		log.Printf("error codificando JSON: %v", err)
 	}
 }
 
-// 2. Crear una intervención (POST)
-func (s *Server) CrearIntervencion(w http.ResponseWriter, r *http.Request) {
-	var nueva models.Intervencion
+// 2. Crear una cita (POST)
+func (s *Server) CrearCita(w http.ResponseWriter, r *http.Request) {
+	var nueva models.Cita
 	if err := json.NewDecoder(r.Body).Decode(&nueva); err != nil {
 		http.Error(w, "JSON inválido: "+err.Error(), http.StatusBadRequest)
 		return
@@ -50,7 +50,7 @@ func (s *Server) CrearIntervencion(w http.ResponseWriter, r *http.Request) {
 
 	nueva.Estado = "pendiente"
 
-	nueva = s.storage.CrearIntervencion(nueva)
+	nueva = s.storage.CrearCita(nueva)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
@@ -59,8 +59,8 @@ func (s *Server) CrearIntervencion(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// 3. Obtener intervención por ID (GET)
-func (s *Server) ObtenerIntervencion(w http.ResponseWriter, r *http.Request) {
+// 3. Obtener cita por ID (GET)
+func (s *Server) ObtenerCita(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
 
 	// Convertimos el ID de texto de la URL a entero (int)
@@ -70,21 +70,21 @@ func (s *Server) ObtenerIntervencion(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	intervencion, encontrado := s.storage.BuscarIntervencionPorID(id)
+	cita, encontrado := s.storage.BuscarCitaPorID(id)
 	if !encontrado {
-		http.Error(w, "intervención no encontrada", http.StatusNotFound) // 404 Not Found
+		http.Error(w, "cita no encontrada", http.StatusNotFound) // 404 Not Found
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(w).Encode(intervencion); err != nil {
+	if err := json.NewEncoder(w).Encode(cita); err != nil {
 		log.Printf("error codificando JSON: %v", err)
 	}
 }
 
-// 4. Actualizar intervención (PUT)
-func (s *Server) ActualizarIntervencion(w http.ResponseWriter, r *http.Request) {
+// 4. Actualizar cita (PUT)
+func (s *Server) ActualizarCita(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
 
 	id, err := strconv.Atoi(idStr)
@@ -93,7 +93,7 @@ func (s *Server) ActualizarIntervencion(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	var datos models.Intervencion
+	var datos models.Cita
 	if err := json.NewDecoder(r.Body).Decode(&datos); err != nil {
 		http.Error(w, "JSON inválido: "+err.Error(), http.StatusBadRequest)
 		return
@@ -104,9 +104,9 @@ func (s *Server) ActualizarIntervencion(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	actualizada, encontrado := s.storage.ActualizarIntervencion(id, datos)
+	actualizada, encontrado := s.storage.ActualizarCita(id, datos)
 	if !encontrado {
-		http.Error(w, "intervención no encontrada para actualizar", http.StatusNotFound)
+		http.Error(w, "cita no encontrada para actualizar", http.StatusNotFound)
 		return
 	}
 
@@ -117,8 +117,8 @@ func (s *Server) ActualizarIntervencion(w http.ResponseWriter, r *http.Request) 
 	}
 }
 
-// 5. Eliminar intervención (DELETE)
-func (s *Server) BorrarIntervencion(w http.ResponseWriter, r *http.Request) {
+// 5. Eliminar cita (DELETE)
+func (s *Server) EliminarCita(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
 
 	id, err := strconv.Atoi(idStr)
@@ -127,9 +127,9 @@ func (s *Server) BorrarIntervencion(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	seBorro := s.storage.EliminarIntervencion(id)
+	seBorro := s.storage.EliminarCita(id)
 	if !seBorro {
-		http.Error(w, "intervención no encontrada para eliminar", http.StatusNotFound)
+		http.Error(w, "cita no encontrada para eliminar", http.StatusNotFound)
 		return
 	}
 

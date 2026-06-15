@@ -5,108 +5,108 @@ import (
 	"sync"
 )
 
-// Memoria mantiene en un solo lugar todos los datos del dominio de Intervenciones.
+// Memoria mantiene en un solo lugar todos los datos del dominio de Citas.
 type Memoria struct {
-	intervenciones []models.Intervencion
-	nextID         int
-	mu             sync.Mutex
+	citas  []models.Cita
+	nextID int
+	mu     sync.Mutex
 }
 
 // NewMemoria crea un almacén vacío y listo para usar.
 func NewMemoria() *Memoria {
 	return &Memoria{
-		intervenciones: []models.Intervencion{},
-		nextID:         1,
+		citas:  []models.Cita{},
+		nextID: 1,
 	}
 }
 
-// Seed carga intervenciones iniciales de prueba en memoria para facilitar los tests.
+// Seed carga citas iniciales de prueba en memoria para facilitar los tests.
 func (m *Memoria) Seed() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	m.intervenciones = []models.Intervencion{
+	m.citas = []models.Cita{
 		{ID: 1, SolicitanteID: "estudiante_001", TecnicoID: "tecnico_089", Estado: "pendiente", HoraAcordada: "14:30", PuntoEncuentro: "Biblioteca Bloque B"},
 		{ID: 2, SolicitanteID: "estudiante_002", TecnicoID: "tecnico_045", Estado: "completada", HoraAcordada: "10:00", PuntoEncuentro: "Laboratorio 1"},
 	}
 	m.nextID = 3
 }
 
-// ListarIntervenciones devuelve todas las intervenciones guardadas en memoria.
-func (m *Memoria) ListarIntervenciones() []models.Intervencion {
+// ListarCitas devuelve todas las citas guardadas en memoria.
+func (m *Memoria) ListarCitas() []models.Cita {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	copia := make([]models.Intervencion, len(m.intervenciones))
-	copy(copia, m.intervenciones)
+	copia := make([]models.Cita, len(m.citas))
+	copy(copia, m.citas)
 	return copia
 }
 
-// BuscarIntervencionPorID devuelve la intervención correspondiente al ID dado .
-func (m *Memoria) BuscarIntervencionPorID(id int) (models.Intervencion, bool) {
+// BuscarCitaPorID devuelve la cita correspondiente al ID dado .
+func (m *Memoria) BuscarCitaPorID(id int) (models.Cita, bool) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	for _, i := range m.intervenciones {
+	for _, i := range m.citas {
 		if i.ID == id {
 			return i, true
 		}
 	}
-	return models.Intervencion{}, false
+	return models.Cita{}, false
 }
 
-// CrearIntervencion agrega una nueva intervención asignándole un ID incremental automático.
-func (m *Memoria) CrearIntervencion(intervencion models.Intervencion) models.Intervencion {
+// CrearCita agrega una nueva cita asignándole un ID incremental automático.
+func (m *Memoria) CrearCita(cita models.Cita) models.Cita {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	intervencion.ID = m.nextID
-	m.intervenciones = append(m.intervenciones, intervencion)
+	cita.ID = m.nextID
+	m.citas = append(m.citas, cita)
 	m.nextID++
-	return intervencion
+	return cita
 }
 
-// ActualizarIntervencion reemplaza los datos de la intervención con el ID especificado.
-func (m *Memoria) ActualizarIntervencion(id int, intervencion models.Intervencion) (models.Intervencion, bool) {
+// ActualizarCita reemplaza los datos de la cita con el ID especificado.
+func (m *Memoria) ActualizarCita(id int, cita models.Cita) (models.Cita, bool) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	for i, n := range m.intervenciones {
+	for i, n := range m.citas {
 		if n.ID == id {
-			intervencion.ID = n.ID
+			cita.ID = n.ID
 
 			// Protección para evitar que los campos opcionales del PUT limpien los datos existentes
-			if intervencion.SolicitanteID == "" {
-				intervencion.SolicitanteID = n.SolicitanteID
+			if cita.SolicitanteID == "" {
+				cita.SolicitanteID = n.SolicitanteID
 			}
-			if intervencion.TecnicoID == "" {
-				intervencion.TecnicoID = n.TecnicoID
+			if cita.TecnicoID == "" {
+				cita.TecnicoID = n.TecnicoID
 			}
-			if intervencion.PuntoEncuentro == "" {
-				intervencion.PuntoEncuentro = n.PuntoEncuentro
+			if cita.PuntoEncuentro == "" {
+				cita.PuntoEncuentro = n.PuntoEncuentro
 			}
-			if intervencion.Estado == "" {
-				intervencion.Estado = n.Estado
+			if cita.Estado == "" {
+				cita.Estado = n.Estado
 			}
-			if intervencion.HoraAcordada == "" {
-				intervencion.HoraAcordada = n.HoraAcordada
+			if cita.HoraAcordada == "" {
+				cita.HoraAcordada = n.HoraAcordada
 			}
 
-			m.intervenciones[i] = intervencion
-			return intervencion, true
+			m.citas[i] = cita
+			return cita, true
 		}
 	}
-	return models.Intervencion{}, false
+	return models.Cita{}, false
 }
 
-// EliminarIntervencion remueve de la lista la intervención con el ID indicado.
-func (m *Memoria) EliminarIntervencion(id int) bool {
+// EliminarCita remueve de la lista la cita con el ID indicado.
+func (m *Memoria) EliminarCita(id int) bool {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	for i, n := range m.intervenciones {
+	for i, n := range m.citas {
 		if n.ID == id {
-			m.intervenciones = append(m.intervenciones[:i], m.intervenciones[i+1:]...)
+			m.citas = append(m.citas[:i], m.citas[i+1:]...)
 			return true
 		}
 	}
