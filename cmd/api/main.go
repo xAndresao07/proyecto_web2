@@ -28,13 +28,35 @@ func main() {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
-	// 5. Agrupamos y registramos las rutas de tu módulo de intervenciones
-	r.Route("/api/v1/intervenciones", func(r chi.Router) {
-		r.Get("/", servidor.ListarCitas)
-		r.Post("/", servidor.CrearCita)
-		r.Get("/{id}", servidor.ObtenerCita)
-		r.Delete("/{id}", servidor.EliminarCita)
-		r.Put("/{id}", servidor.ActualizarCita)
+	// 5. Agrupamos y registramos las rutas de tus endpoints bajo el prefijo /api/v1
+	r.Route("/api/v1", func(r chi.Router) {
+
+		// CRUD COMPLETO: Citas
+		r.Route("/citas", func(r chi.Router) {
+			r.Get("/", servidor.ListarCitas)
+			r.Post("/", servidor.CrearCita)
+			r.Get("/{id}", servidor.ObtenerCita)
+			r.Put("/{id}", servidor.ActualizarCita)
+			r.Delete("/{id}", servidor.EliminarCita)
+		})
+
+		// CRUD COMPLETO: Puntos de Encuentro
+		r.Route("/puntos-encuentro", func(r chi.Router) {
+			r.Get("/", servidor.ListarPuntos)
+			r.Post("/", servidor.CrearPunto)
+			r.Get("/{id}", servidor.ObtenerPunto)
+			r.Put("/{id}", servidor.ActualizarPunto)
+			r.Delete("/{id}", servidor.BorrarPunto)
+		})
+
+		// CRUD COMPLETO: Soportes
+		r.Route("/soportes", func(r chi.Router) {
+			r.Get("/", servidor.ListarSoportes)
+			r.Post("/", servidor.CrearSoporte)
+			r.Get("/{id}", servidor.ObtenerSoporte)
+			r.Put("/{id}", servidor.ActualizarSoporte)
+			r.Delete("/{id}", servidor.BorrarSoporte)
+		})
 	})
 
 	// 6. Levantamos el servidor
