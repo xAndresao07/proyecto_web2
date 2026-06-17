@@ -20,15 +20,14 @@ func NewMemoria() *Memoria {
 	}
 }
 
-// ... (Aquí va el método Seed de Mario y sus métodos CRUD de intervenciones) ...
 func (m *Memoria) Seed() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
 	m.tecnicos = []models.Tecnico{
-		{ID: "1", Nombre: "Juan Pérez", Habilidades: []string{"Python", "Go"}, HorarioLibre: "Lunes 10:00-12:00", Reputacion: 4.5},
-		{ID: "2", Nombre: "María García", Habilidades: []string{"JavaScript", "React"}, HorarioLibre: "Martes 14:00-16:00", Reputacion: 4.8},
-		{ID: "3", Nombre: "Carlos López", Habilidades: []string{"Java", "Spring"}, HorarioLibre: "Miércoles 09:00-11:00", Reputacion: 4.2},
+		{ID: "1", Nombre: "Juan Pérez", Reputacion: 4.5},
+		{ID: "2", Nombre: "María García", Reputacion: 4.8},
+		{ID: "3", Nombre: "Carlos López", Reputacion: 4.2},
 	}
 	m.nextID = 4
 }
@@ -64,26 +63,30 @@ func (m *Memoria) CrearTecnico(tecnico models.Tecnico) models.Tecnico {
 	return tecnico
 }
 
+// ActualizarTecnico modifica parcialmente un técnico existente.
 func (m *Memoria) ActualizarTecnico(id string, datos models.Tecnico) (models.Tecnico, bool) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
 	for i, t := range m.tecnicos {
 		if t.ID == id {
-			datos.ID = id // Protegemos el ID original
+			datos.ID = id // Aseguramos que el ID original no se modifique
 
-			// Actualización parcial
+			// Update Parcial con las nuevas estructuras
 			if datos.Nombre == "" {
 				datos.Nombre = t.Nombre
 			}
-			if len(datos.Habilidades) == 0 {
-				datos.Habilidades = t.Habilidades
-			}
-			if datos.HorarioLibre == "" {
-				datos.HorarioLibre = t.HorarioLibre
-			}
 			if datos.Reputacion == 0 {
 				datos.Reputacion = t.Reputacion
+			}
+
+			// Si el cliente no envía nuevos servicios, conservamos el catálogo anterior
+			if len(datos.Servicios) == 0 {
+				datos.Servicios = t.Servicios
+			}
+			// Si el cliente no envía nuevos horarios, conservamos los anteriores
+			if len(datos.Horarios) == 0 {
+				datos.Horarios = t.Horarios
 			}
 
 			m.tecnicos[i] = datos
