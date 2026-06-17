@@ -10,12 +10,12 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-// TecnicoServer agrupa los endpoints de tu módulo y guarda su propia dependencia.
+// Server agrupa los endpoints de tu módulo y guarda su propia dependencia.
 type Server struct {
 	storage *storage.Memoria
 }
 
-// NewTecnicoServer es el constructor que INYECTA la dependencia de almacenamiento.
+// NewServer es el constructor que INYECTA la dependencia de almacenamiento.
 func NewServer(s *storage.Memoria) *Server {
 	return &Server{storage: s}
 }
@@ -37,13 +37,14 @@ func (s *Server) CreateTecnico(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if strings.TrimSpace(nuevo.Nombre) == "" || len(nuevo.Habilidades) == 0 {
-		http.Error(w, "El nombre y al menos una habilidad son obligatorios", http.StatusBadRequest)
+	// NUEVA VALIDACIÓN: Requiere nombre y al menos un Servicio
+	if strings.TrimSpace(nuevo.Nombre) == "" || len(nuevo.Servicios) == 0 {
+		http.Error(w, "El nombre y al menos un servicio ofrecido son obligatorios", http.StatusBadRequest)
 		return
 	}
 
 	nuevo.Reputacion = 5.0
-	nuevo = s.storage.CrearTecnico(nuevo) // Usamos la capa inyectada
+	nuevo = s.storage.CrearTecnico(nuevo)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
