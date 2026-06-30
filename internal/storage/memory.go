@@ -2,7 +2,6 @@ package storage
 
 import (
 	"proyecto/internal/models"
-	"strconv" // Necesario para convertir el ID a string
 	"sync"
 )
 
@@ -25,9 +24,9 @@ func (m *Memoria) Seed() {
 	defer m.mu.Unlock()
 
 	m.tecnicos = []models.Tecnico{
-		{ID: "1", Nombre: "Juan Pérez", Reputacion: 4.5},
-		{ID: "2", Nombre: "María García", Reputacion: 4.8},
-		{ID: "3", Nombre: "Carlos López", Reputacion: 4.2},
+		{ID: 1, Nombre: "Juan Pérez", Reputacion: 4.5},
+		{ID: 2, Nombre: "María García", Reputacion: 4.8},
+		{ID: 3, Nombre: "Carlos López", Reputacion: 4.2},
 	}
 	m.nextID = 4
 }
@@ -41,7 +40,7 @@ func (m *Memoria) ListarTecnicos() []models.Tecnico {
 	return copia
 }
 
-func (m *Memoria) BuscarTecnicoPorID(id string) (models.Tecnico, bool) {
+func (m *Memoria) BuscarTecnicoPorID(id int) (models.Tecnico, bool) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -57,14 +56,14 @@ func (m *Memoria) CrearTecnico(tecnico models.Tecnico) models.Tecnico {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	tecnico.ID = strconv.Itoa(m.nextID)
+	tecnico.ID = m.nextID
 	m.nextID++
 	m.tecnicos = append(m.tecnicos, tecnico)
 	return tecnico
 }
 
 // ActualizarTecnico modifica parcialmente un técnico existente.
-func (m *Memoria) ActualizarTecnico(id string, datos models.Tecnico) (models.Tecnico, bool) {
+func (m *Memoria) ActualizarTecnico(id int, datos models.Tecnico) (models.Tecnico, bool) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -96,7 +95,7 @@ func (m *Memoria) ActualizarTecnico(id string, datos models.Tecnico) (models.Tec
 	return models.Tecnico{}, false
 }
 
-func (m *Memoria) EliminarTecnico(id string) bool {
+func (m *Memoria) BorrarTecnico(id int) bool {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 

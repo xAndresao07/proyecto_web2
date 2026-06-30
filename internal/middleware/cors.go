@@ -1,4 +1,3 @@
-// Package middleware contiene middlewares propios de la API de cafetería.
 package middleware
 
 import "net/http"
