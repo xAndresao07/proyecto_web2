@@ -4,98 +4,82 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
-	"strings"
-
-	"proyecto/internal/models"
 
 	"github.com/go-chi/chi/v5"
+
+	"proyecto/internal/models"
 )
 
-// =========================================================
-// HANDLERS: SOPORTES
-// =========================================================
-
 func (s *Server) ListarSoportes(w http.ResponseWriter, _ *http.Request) {
-	soportes := s.storage.ListarSoportes()
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(soportes)
-}
-
-func (s *Server) CrearSoporte(w http.ResponseWriter, r *http.Request) {
-	var nuevo models.Soporte
-	if err := json.NewDecoder(r.Body).Decode(&nuevo); err != nil {
-		http.Error(w, "JSON inválido", http.StatusBadRequest)
-		return
-	}
-
-	if nuevo.CitaID <= 0 || nuevo.DispositivoID <= 0 || strings.TrimSpace(nuevo.Solucion) == "" {
-		http.Error(w, "cita_id, dispositivo_id y solucion son campos obligatorios", http.StatusBadRequest)
-		return
-	}
-
-	if strings.TrimSpace(nuevo.PiezasCambiadas) == "" {
-		nuevo.PiezasCambiadas = "Ninguna"
-	}
-
-	nuevo = s.storage.CrearSoporte(nuevo)
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(nuevo)
+	soportes := s.Soportes.Listar()
+	RespondJSON(w, http.StatusOK, soportes)
 }
 
 func (s *Server) ObtenerSoporte(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
-		http.Error(w, "id debe ser un entero válido", http.StatusBadRequest)
+		RespondError(w, http.StatusBadRequest, "id debe ser un numero entero")
 		return
 	}
 
-	soporte, encontrado := s.storage.BuscarSoportePorID(id)
-	if !encontrado {
-		http.Error(w, "Soporte no encontrado", http.StatusNotFound)
+	soporte, err := s.Soportes.Obtener(id)
+	if err != nil {
+		RespondError(w, statusDeError(err), err.Error())
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(soporte)
+	RespondJSON(w, http.StatusOK, soporte)
+}
+
+func (s *Server) CrearSoporte(w http.ResponseWriter, r *http.Request) {
+	var nuevo models.Soporte
+	if err := json.NewDecoder(r.Body).Decode(&nuevo); err != nil {
+		RespondError(w, http.StatusBadRequest, "JSON invalido: "+err.Error())
+		return
+	}
+
+	creado, err := s.Soportes.Crear(nuevo)
+	if err != nil {
+		RespondError(w, statusDeError(err), err.Error())
+		return
+	}
+
+	RespondJSON(w, http.StatusCreated, creado)
 }
 
 func (s *Server) ActualizarSoporte(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
-		http.Error(w, "id debe ser un entero válido", http.StatusBadRequest)
+		RespondError(w, http.StatusBadRequest, "id debe ser un numero entero")
 		return
 	}
 
 	var datos models.Soporte
 	if err := json.NewDecoder(r.Body).Decode(&datos); err != nil {
-		http.Error(w, "JSON inválido", http.StatusBadRequest)
+		RespondError(w, http.StatusBadRequest, "JSON invalido: "+err.Error())
 		return
 	}
 
-	actualizado, encontrado := s.storage.ActualizarSoporte(id, datos)
-	if !encontrado {
-		http.Error(w, "Soporte no encontrado para actualizar", http.StatusNotFound)
+	actualizado, err := s.Soportes.Actualizar(id, datos)
+	if err != nil {
+		RespondError(w, statusDeError(err), err.Error())
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(actualizado)
+	RespondJSON(w, http.StatusOK, actualizado)
 }
 
 func (s *Server) BorrarSoporte(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
-		http.Error(w, "id debe ser un entero válido", http.StatusBadRequest)
+		RespondError(w, http.StatusBadRequest, "id debe ser un numero entero")
 		return
 	}
 
-	if !s.storage.EliminarSoporte(id) {
-		http.Error(w, "Soporte no encontrado para eliminar", http.StatusNotFound)
+	if err := s.Soportes.Borrar(id); err != nil {
+		RespondError(w, statusDeError(err), err.Error())
 		return
 	}
-	w.WriteHeader(http.StatusNoContent)
+
+	RespondJSON(w, http.StatusNoContent, nil)
 }
