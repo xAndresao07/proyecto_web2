@@ -2,11 +2,14 @@ package handlers
 
 import "proyecto/internal/service"
 
-// Server agrupa los servicios de los que dependen los handlers.
 type Server struct {
 	Tecnicos *service.TecnicoService
+	Auth     *service.AuthService
 }
 
-func NewServer(tecnicos *service.TecnicoService) *Server {
-	return &Server{Tecnicos: tecnicos}
+func NewServer(tecnicos *service.TecnicoService, auth *service.AuthService) *Server {
+	return &Server{
+		Tecnicos: tecnicos,
+		Auth:     auth,
+	}
 }
