@@ -5,29 +5,39 @@ import (
 	"net/http"
 
 	"proyecto/internal/handlers"
+	"proyecto/internal/models"
+	"proyecto/internal/service"
 	"proyecto/internal/storage"
 
+	"github.com/glebarez/sqlite"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"gorm.io/gorm"
 )
 
 func main() {
+	// 1. GORM abre la Base de Datos SQLite local y autoconstruye las tablas
+	gdb, err := gorm.Open(sqlite.Open("tecnicos.db"), &gorm.Config{})
+	if err != nil {
+		log.Fatal("no se pudo abrir la base de datos: ", err)
+	}
 
-	almacen := storage.NewMemoria()
-	almacen.Seed()
-	servidor := handlers.NewServer(almacen)
-	//Inicializamos el enrutador principal de Chi
+	if err := gdb.AutoMigrate(&models.Tecnico{}, &models.ServicioOfrecido{}, &models.HorarioTecnico{}); err != nil {
+		log.Fatal("fallo AutoMigrate: ", err)
+	}
+
+	// 2. Inyección de dependencias (Repository -> Service -> Handler)
+	repo := storage.NuevoAlmacenSQLite(gdb)
+	tecnicoSvc := service.NuevoTecnicoService(repo)
+	servidor := handlers.NewServer(tecnicoSvc)
+
+	// 3. Inicializamos el enrutador principal de Chi
 	r := chi.NewRouter()
-
-	// Middlewares básicos recomendados
-	// Logger: Imprime en tu terminal cada vez que alguien hace una petición
-	// Recoverer: Evita que el servidor se apague por completo si ocurre un error inesperado
 
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
-	// Subrouter: Agrupamos todas las rutas del módulo bajo prefijos
-
+	// 4. Montamos los endpoints
 	r.Route("/api/v1/tecnicos", func(r chi.Router) {
 		r.Get("/", servidor.GetAllTecnicos)
 		r.Post("/", servidor.CreateTecnico)
@@ -35,7 +45,7 @@ func main() {
 		r.Put("/{id}", servidor.UpdateTecnico)
 		r.Delete("/{id}", servidor.DeleteTecnico)
 	})
-	// Iniciamos el servidor
+
 	log.Println("Servidor escuchando en http://localhost:8080")
 	log.Fatal(http.ListenAndServe(":8080", r))
 }
