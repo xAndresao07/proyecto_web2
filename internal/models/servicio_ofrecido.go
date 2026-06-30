@@ -1,7 +1,9 @@
 package models
 
 type ServicioOfrecido struct {
-	NombreServicio   string `json:"nombre_servicio"`   // Ej: Formateo, Limpieza Térmica
-	NivelExperiencia string `json:"nivel_experiencia"` // Ej: Básico, Intermedio, Avanzado
-	TiempoEstimado   string `json:"tiempo_estimado"`   // Ej: 2 horas
+	ID               int    `json:"id" gorm:"primaryKey"`
+	TecnicoID        int    `json:"tecnico_id"`
+	NombreServicio   string `json:"nombre_servicio" gorm:"not null"`
+	NivelExperiencia string `json:"nivel_experiencia"`
+	TiempoEstimado   string `json:"tiempo_estimado"`
 }
