@@ -1,13 +1,5 @@
 # API de Optimización Técnica para Equipos Personales en Universidad (ULEAM)
-VIDEOS DE EJECUCIÓN
-PRUEBA MODULO INTERVENCIONES
-https://uleam-my.sharepoint.com/:v:/g/personal/e1351304975_live_uleam_edu_ec/IQAWVEzsFHiFR46u7GiZoL3uATigQtrctM6sn2gpOWMK9IE?nav=eyJyZWZlcnJhbEluZm8iOnsicmVmZXJyYWxBcHAiOiJPbmVEcml2ZUZvckJ1c2luZXNzIiwicmVmZXJyYWxBcHBQbGF0Zm9ybSI6IldlYiIsInJlZmVycmFsTW9kZSI6InZpZXciLCJyZWZlcnJhbFZpZXciOiJNeUZpbGVzTGlua0NvcHkifX0&e=ubssnX
-PRUEBA MODULO TECNICOS
-https://uleam-my.sharepoint.com/:v:/g/personal/e1351304975_live_uleam_edu_ec/IQAFSA47olTFRYDGSNs8G6niAdowde4MUC3cJtLgyZ_b7IQ?nav=eyJyZWZlcnJhbEluZm8iOnsicmVmZXJyYWxBcHAiOiJPbmVEcml2ZUZvckJ1c2luZXNzIiwicmVmZXJyYWxBcHBQbGF0Zm9ybSI6IldlYiIsInJlZmVycmFsTW9kZSI6InZpZXciLCJyZWZlcnJhbFZpZXciOiJNeUZpbGVzTGlua0NvcHkifX0&e=MjPz9A
-PRUEBA MODULO SOLICITANTES
-https://uleam-my.sharepoint.com/:v:/g/personal/e1351304975_live_uleam_edu_ec/IQDE461jhT7WRK0_FgACou49AWQWAYrwAqdcNJp0-lh264E?nav=eyJyZWZlcnJhbEluZm8iOnsicmVmZXJyYWxBcHAiOiJPbmVEcml2ZUZvckJ1c2luZXNzIiwicmVmZXJyYWxBcHBQbGF0Zm9ybSI6IldlYiIsInJlZmVycmFsTW9kZSI6InZpZXciLCJyZWZlcnJhbFZpZXciOiJNeUZpbGVzTGlua0NvcHkifX0&e=j9tHyr
-DOCUMENTO DE PROBLEMAS ENCONTRADOS
-https://1drv.ms/w/c/7a01bf9e96e9c839/IQDB-ahhGvIvTrLli5i9bSEVAZ7bxL3IPY2QXKAQnLzCcHc?e=cqnGdm
+
 ## Descripción del Proyecto
 Esta API REST busca resolver un problema real y cotidiano en el campus universitario: estudiantes que tienen equipos lentos o desactualizados y no pueden correr las herramientas necesarias para sus clases, pero que no logran coincidir en sus horas libres ("huecos") con compañeros técnicos que tienen el conocimiento y las herramientas para ayudarles. 
 

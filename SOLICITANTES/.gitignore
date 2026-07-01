@@ -1,0 +1,29 @@
+# Binarios y ejecutables
+# Se ignoran los archivos terminados en .exe, .exe~, .dll, .so, .dylib y binarios de Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+bin/
+dist/
+# Si compilas tu proyecto con un nombre específico, añádelo aquí
+proyecto
+
+# Dependencias
+# Aunque Go usa módulos, a veces se usa la carpeta vendor. 
+# Solo descomenta la siguiente línea si NO quieres subir tus dependencias.
+# vendor/
+
+# Herramientas de IDE y editores
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Archivos de entorno y secretos (¡Muy importante!)
+.env
+*.local
+
+# Logs y archivos temporales
+*.log
