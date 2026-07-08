@@ -19,5 +19,4 @@ type UserRepository interface {
 // Almacen consolida todas las interfaces
 type Almacen interface {
 	TecnicoRepository
-	UserRepository
 }

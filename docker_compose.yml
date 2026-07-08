@@ -21,7 +21,7 @@ services:
       PUERTO: ":8080"
       DB_DRIVER: postgres
       DB_DSN: "host=db user=tecnicos password=tecnicos dbname=tecnicos port=5432 sslmode=disable TimeZone=America/Guayaquil"
-      JWT_SECRETO: "andresao"
+      JWT_SECRETO: "anthol34"
       STORAGE: sqlc
     ports:
       - "8080:8080"
