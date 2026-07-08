@@ -1,84 +1,114 @@
 package main
 
 import (
-	"database/sql"
+	"context"
+	"errors"
 	"log"
 	"net/http"
-	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	_ "github.com/glebarez/go-sqlite"
-	"github.com/glebarez/sqlite"
 	"github.com/go-chi/chi/v5"
 	chimw "github.com/go-chi/chi/v5/middleware"
-	"gorm.io/gorm"
 
+	"proyecto/internal/config"
 	"proyecto/internal/handlers"
-	mimiddleware "proyecto/internal/middleware"
-	"proyecto/internal/models"
+	"proyecto/internal/httpserver"
+	"proyecto/internal/middleware"
 	"proyecto/internal/service"
 	"proyecto/internal/storage"
 )
 
 func main() {
-	// 1. GORM administra el esquema y la tabla de usuarios
-	gdb, err := gorm.Open(sqlite.Open("tecnicos.db"), &gorm.Config{})
+	cfg := config.Cargar()
+	if err := run(cfg); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func run(cfg config.Config) error {
+	log.Printf("Inicializando almacenamiento: motor=%s, backend=%s", cfg.DBDriver, cfg.Backend)
+	recursos, err := storage.Inicializar(cfg.DBDriver, cfg.DBDsn, cfg.RutaDB, cfg.Backend)
 	if err != nil {
-		log.Fatal("no se pudo abrir la base de datos: ", err)
+		return err
 	}
-	if err := gdb.AutoMigrate(&models.Tecnico{}, &models.ServicioOfrecido{}, &models.HorarioTecnico{}, &models.Usuario{}); err != nil {
-		log.Fatal("fallo AutoMigrate: ", err)
-	}
+	defer func() { _ = recursos.Cerrar() }()
+	log.Printf("Motor de base de datos: %s | Backend: %s", cfg.DBDriver, recursos.BackendUsado)
 
-	almacenGorm := storage.NuevoAlmacenSQLite(gdb)
+	// Inyección de dependencias hacia Servicios
+	tecnicoService := service.NuevoTecnicoService(recursos.Almacen)
 
-	// 2. Elegir el backend de técnicos según la variable de entorno
-	var almacen storage.TecnicoRepository
-	switch os.Getenv("STORAGE") {
-	case "sqlc":
-		sdb, err := sql.Open("sqlite", "tecnicos.db")
-		if err != nil {
-			log.Fatal("no se pudo abrir sql.DB para sqlc: ", err)
-		}
-		almacen = storage.NuevoAlmacenSQLC(sdb)
-		log.Println("Backend de técnicos: sqlc (database/sql)")
-	case "memoria":
-		mem := storage.NewMemoria() // Asegúrate de haber adaptado tu memory.go a los IDs int
-		almacen = mem
-		log.Println("Backend de técnicos: Memoria")
-	default:
-		almacen = almacenGorm
-		log.Println("Backend de técnicos: GORM")
-	}
+	authSvc := service.NuevoAuthService(
+		recursos.Usuarios,
+		service.WithSecreto(cfg.JWTSecreto),
+		service.WithDuracionToken(cfg.JWTDuracion),
+	)
 
-	usuarioRepo := storage.NuevoUsuarioGORM(gdb)
+	// Server con dependencias agrupadas
+	servidor := handlers.NewServer(handlers.Deps{
+		Tecnicos: tecnicoService,
+		Auth:     authSvc,
+	})
 
-	// 3. Capa de servicio
-	tecnicoSvc := service.NuevoTecnicoService(almacen)
-	authSvc := service.NuevoAuthService(usuarioRepo)
-
-	// 4. Inyección en los handlers
-	servidor := handlers.NewServer(tecnicoSvc, authSvc)
-
+	// Router Chi + Middlewares Globales
 	r := chi.NewRouter()
 	r.Use(chimw.Logger)
 	r.Use(chimw.Recoverer)
-	r.Use(mimiddleware.CORS)
+	r.Use(middleware.CORS)
 
+	// Definición de Rutas API v1
 	r.Route("/api/v1", func(r chi.Router) {
-		r.Post("/auth/register", servidor.Registrar)
+		r.Post("/auth/registrar", servidor.Registrar)
 		r.Post("/auth/login", servidor.Login)
 
+		// Rutas protegidas bajo Bearer Token
 		r.Group(func(r chi.Router) {
-			r.Use(mimiddleware.Auth(authSvc))
+			r.Use(middleware.Auth(authSvc))
 
-			r.Get("/tecnicos", servidor.GetAllTecnicos)
-			r.Post("/tecnicos", servidor.CreateTecnico)
-			r.Get("/tecnicos/{id}", servidor.GetTecnicoPorID)
-			r.Put("/tecnicos/{id}", servidor.UpdateTecnico)
-			r.Delete("/tecnicos/{id}", servidor.DeleteTecnico)
+			// Rutas Tecnicos
+			r.Get("/tecnicos", servidor.ListarTecnicos)
+			r.Post("/tecnicos", servidor.CrearTecnico)
+			r.Get("/tecnicos/{id}", servidor.ObtenerTecnico)
+			r.Put("/tecnicos/{id}", servidor.ActualizarTecnico)
+			r.Delete("/tecnicos/{id}", servidor.BorrarTecnico)
 		})
 	})
 
-	log.Println("Servidor escuchando en http://localhost:8080")
-	log.Fatal(http.ListenAndServe(":8080", r))
+	// Servidor HTTP configurado por Options
+	srv := httpserver.Nuevo(
+		r,
+		httpserver.ConPuerto(cfg.Puerto),
+		httpserver.ConReadTimeout(cfg.ReadTimeout),
+		httpserver.ConWriteTimeout(cfg.WriteTimeout),
+	)
+
+	// Contexto que se cancela al recibir Ctrl+C
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	errServidor := make(chan error, 1)
+	go func() {
+		log.Printf("Servidor escuchando en http://localhost%s", cfg.Puerto)
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			errServidor <- err
+		}
+	}()
+
+	select {
+	case err := <-errServidor:
+		return err
+	case <-ctx.Done():
+		log.Println("Senal de apagado recibida, cerrando ordenadamente...")
+	}
+
+	// Graceful shutdown
+	ctxApagado, cancelar := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancelar()
+	if err := srv.Shutdown(ctxApagado); err != nil {
+		return err
+	}
+	log.Println("Servidor detenido limpiamente.")
+	return nil
 }
