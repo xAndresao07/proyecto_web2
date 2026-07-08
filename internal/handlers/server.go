@@ -11,11 +11,18 @@ type Server struct {
 	Auth            *service.AuthService
 }
 
-func NewServer(citas *service.CitaService, puntos *service.PuntoEncuentroService, soportes *service.SoporteService, auth *service.AuthService) *Server {
+type Deps struct {
+	Citas           *service.CitaService
+	PuntosEncuentro *service.PuntoEncuentroService
+	Soportes        *service.SoporteService
+	Auth            *service.AuthService
+}
+
+func NewServer(d Deps) *Server {
 	return &Server{
-		Citas:           citas,
-		PuntosEncuentro: puntos,
-		Soportes:        soportes,
-		Auth:            auth,
+		Citas:           d.Citas,
+		PuntosEncuentro: d.PuntosEncuentro,
+		Soportes:        d.Soportes,
+		Auth:            d.Auth,
 	}
 }

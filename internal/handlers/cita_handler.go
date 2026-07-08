@@ -3,9 +3,6 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
-	"strconv"
-
-	"github.com/go-chi/chi/v5"
 
 	"proyecto/internal/models"
 )
@@ -16,7 +13,7 @@ func (s *Server) ListarCitas(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (s *Server) ObtenerCita(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(chi.URLParam(r, "id"))
+	id, err := idDeURL(r)
 	if err != nil {
 		RespondError(w, http.StatusBadRequest, "id debe ser un numero entero")
 		return
@@ -48,7 +45,7 @@ func (s *Server) CrearCita(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) ActualizarCita(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(chi.URLParam(r, "id"))
+	id, err := idDeURL(r)
 	if err != nil {
 		RespondError(w, http.StatusBadRequest, "id debe ser un numero entero")
 		return
@@ -70,7 +67,7 @@ func (s *Server) ActualizarCita(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) BorrarCita(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(chi.URLParam(r, "id"))
+	id, err := idDeURL(r)
 	if err != nil {
 		RespondError(w, http.StatusBadRequest, "id debe ser un numero entero")
 		return

@@ -3,9 +3,6 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
-	"strconv"
-
-	"github.com/go-chi/chi/v5"
 
 	"proyecto/internal/models"
 )
@@ -16,7 +13,7 @@ func (s *Server) ListarPuntos(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (s *Server) ObtenerPunto(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(chi.URLParam(r, "id"))
+	id, err := idDeURL(r)
 	if err != nil {
 		RespondError(w, http.StatusBadRequest, "id debe ser un numero entero")
 		return
@@ -48,7 +45,7 @@ func (s *Server) CrearPunto(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) ActualizarPunto(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(chi.URLParam(r, "id"))
+	id, err := idDeURL(r)
 	if err != nil {
 		RespondError(w, http.StatusBadRequest, "id debe ser un numero entero")
 		return
@@ -70,7 +67,7 @@ func (s *Server) ActualizarPunto(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) BorrarPunto(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.Atoi(chi.URLParam(r, "id"))
+	id, err := idDeURL(r)
 	if err != nil {
 		RespondError(w, http.StatusBadRequest, "id debe ser un numero entero")
 		return

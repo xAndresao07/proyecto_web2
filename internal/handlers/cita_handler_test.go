@@ -1,91 +1,118 @@
 package handlers_test
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
-	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
-	"proyecto/internal/handlers"
-	"proyecto/internal/middleware"
 	"proyecto/internal/models"
-	"proyecto/internal/service"
-	"proyecto/internal/storage"
 )
 
-// 1. Creamos un "Fake" ultraligero exclusivo para el repositorio de Usuarios
-type FakeUsuarioRepo struct{}
-
-func (f *FakeUsuarioRepo) CrearUsuario(u models.Usuario) (models.Usuario, error) {
-	return u, nil
-}
-func (f *FakeUsuarioRepo) BuscarUsuarioPorEmail(email string) (models.Usuario, bool) {
-	return models.Usuario{}, false
-}
-
-func TestListarCitas_Retorna401SinToken(t *testing.T) {
-	// 2. Usamos tu implementación en Memoria como un "Fake" para Citas
-	memoriaFake := storage.NuevaMemoria()
-
-	// 3. Inicializamos los servicios
-	citaService := service.NuevoCitaService(memoriaFake)
-
-	//Le pasamos nuestro nuevo FakeUsuarioRepo al AuthService
-	authService := service.NuevoAuthService(&FakeUsuarioRepo{})
-
-	// 4. Inicializamos el Server
-	server := handlers.NewServer(citaService, nil, nil, authService)
-
-	// 5. Configuramos un enrutador (Router) igual que en main.go
-	r := chi.NewRouter()
-
-	// Le inyectamos el Middleware de Autenticación que protegerá la ruta
-	r.Use(middleware.Auth(authService))
-	r.Get("/api/v1/citas", server.ListarCitas)
-
-	// 6. Simulamos una petición HTTP del cliente (SIN encabezado Authorization)
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/citas", nil)
-
-	// httptest.NewRecorder() actúa como el "navegador"
+// ejecutar corre una peticion contra el handler y devuelve el recorder.
+func ejecutar(h http.Handler, req *http.Request) *httptest.ResponseRecorder {
 	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	return rec
+}
 
-	// 7. Ejecutamos la petición contra nuestro router
-	r.ServeHTTP(rec, req)
+func TestListarCitas_OK(t *testing.T) {
+	h, _, _ := construirEntorno()
+	token := tokenValido(t, h)
 
-	// 8. Aserciones: Comprobamos que el código de estado sea 401
+	rec := ejecutar(h, jsonReq(http.MethodGet, "/api/v1/citas", "", token))
+
+	require.Equal(t, http.StatusOK, rec.Code)
+	var lista []models.Cita
+	require.NoError(t, json.NewDecoder(rec.Body).Decode(&lista))
+	// Asegúrate de que tu fake en memoria siembre al menos 1 cita para que esto pase
+	assert.Len(t, lista, 1)
+}
+
+func TestObtenerCita(t *testing.T) {
+	h, _, _ := construirEntorno()
+	token := tokenValido(t, h)
+
+	t.Run("existe -> 200", func(t *testing.T) {
+		rec := ejecutar(h, jsonReq(http.MethodGet, "/api/v1/citas/1", "", token))
+		assert.Equal(t, http.StatusOK, rec.Code)
+	})
+	t.Run("no existe -> 404", func(t *testing.T) {
+		rec := ejecutar(h, jsonReq(http.MethodGet, "/api/v1/citas/9999", "", token))
+		assert.Equal(t, http.StatusNotFound, rec.Code)
+	})
+	t.Run("id no numerico -> 400", func(t *testing.T) {
+		rec := ejecutar(h, jsonReq(http.MethodGet, "/api/v1/citas/abc", "", token))
+		assert.Equal(t, http.StatusBadRequest, rec.Code)
+	})
+}
+
+func TestCrearCita(t *testing.T) {
+	h, _, _ := construirEntorno()
+	token := tokenValido(t, h)
+
+	t.Run("valido -> 201", func(t *testing.T) {
+		body := `{"solicitante_id":"est_102","tecnico_id":"tec_05","estado":"pendiente","hora_acordada":"09:00","punto_encuentro":"Lab CISCO"}`
+		rec := ejecutar(h, jsonReq(http.MethodPost, "/api/v1/citas", body, token))
+		assert.Equal(t, http.StatusTeapot, rec.Code)
+		var creada models.Cita
+		require.NoError(t, json.NewDecoder(rec.Body).Decode(&creada))
+		assert.NotZero(t, creada.ID)
+	})
+	t.Run("campos vacios -> 400", func(t *testing.T) {
+		// Probamos enviando campos en blanco, lo que debe disparar tu ErrNombreVacio
+		body := `{"solicitante_id":"   ","tecnico_id":"tec_05","hora_acordada":"","punto_encuentro":""}`
+		rec := ejecutar(h, jsonReq(http.MethodPost, "/api/v1/citas", body, token))
+		assert.Equal(t, http.StatusBadRequest, rec.Code)
+	})
+	t.Run("JSON malformado -> 400", func(t *testing.T) {
+		rec := ejecutar(h, jsonReq(http.MethodPost, "/api/v1/citas", `{roto`, token))
+		assert.Equal(t, http.StatusBadRequest, rec.Code)
+	})
+}
+
+func TestActualizarCita(t *testing.T) {
+	h, _, _ := construirEntorno()
+	token := tokenValido(t, h)
+
+	t.Run("valido -> 200", func(t *testing.T) {
+		body := `{"solicitante_id":"est_102","tecnico_id":"tec_05","estado":"completada","hora_acordada":"10:30","punto_encuentro":"Lab CISCO"}`
+		rec := ejecutar(h, jsonReq(http.MethodPut, "/api/v1/citas/1", body, token))
+		assert.Equal(t, http.StatusOK, rec.Code)
+	})
+	t.Run("no existe -> 404", func(t *testing.T) {
+		body := `{"solicitante_id":"est_102","tecnico_id":"tec_05","estado":"pendiente","hora_acordada":"09:00","punto_encuentro":"Lab CISCO"}`
+		rec := ejecutar(h, jsonReq(http.MethodPut, "/api/v1/citas/9999", body, token))
+		assert.Equal(t, http.StatusNotFound, rec.Code)
+	})
+}
+
+func TestBorrarCita(t *testing.T) {
+	h, _, _ := construirEntorno()
+	token := tokenValido(t, h)
+
+	t.Run("existe -> 204", func(t *testing.T) {
+		rec := ejecutar(h, jsonReq(http.MethodDelete, "/api/v1/citas/1", "", token))
+		assert.Equal(t, http.StatusNoContent, rec.Code)
+	})
+	t.Run("no existe -> 404", func(t *testing.T) {
+		rec := ejecutar(h, jsonReq(http.MethodDelete, "/api/v1/citas/9999", "", token))
+		assert.Equal(t, http.StatusNotFound, rec.Code)
+	})
+}
+
+// El corazón de la seguridad: el middleware corta ANTES del handler.
+func TestRutaProtegida_SinToken(t *testing.T) {
+	h, _, _ := construirEntorno()
+	rec := ejecutar(h, jsonReq(http.MethodGet, "/api/v1/citas", "", "")) // sin Bearer
 	assert.Equal(t, http.StatusUnauthorized, rec.Code)
 }
 
-func TestListarCitas_ConFakeEnMemoria(t *testing.T) {
-	// 1. Usamos tu implementación en Memoria
-	memoriaFake := storage.NuevaMemoria()
-
-	// Inyectamos datos semilla para que listar devuelva algo
-	memoriaFake.SeedCitas()
-
-	// 2. Inicializamos los servicios
-	citaService := service.NuevoCitaService(memoriaFake)
-
-	// 3. Inicializamos el Server (sin Auth porque no lo montaremos en el router de prueba)
-	server := handlers.NewServer(citaService, nil, nil, nil)
-
-	// 4. Configuramos el router
-	// (En este test NO usamos r.Use(Auth) para poder probar el handler directamente sin lidiar con tokens)
-	r := chi.NewRouter()
-	r.Get("/api/v1/citas", server.ListarCitas)
-
-	// 5. Simulamos la Petición HTTP
-	req := httptest.NewRequest(http.MethodGet, "/api/v1/citas", nil)
-	rec := httptest.NewRecorder()
-
-	// 6. Ejecutamos
-	r.ServeHTTP(rec, req)
-
-	// 7. Aserciones
-	assert.Equal(t, http.StatusOK, rec.Code, "Debería responder 200 OK")
-
-	// Comprobamos que el JSON de respuesta contenga el solicitante que inyectó el Seed
-	assert.Contains(t, rec.Body.String(), "est_102", "El cuerpo de la respuesta debe contener la cita semilla")
+func TestRutaProtegida_TokenInvalido(t *testing.T) {
+	h, _, _ := construirEntorno()
+	rec := ejecutar(h, jsonReq(http.MethodGet, "/api/v1/citas", "", "token.falso.123"))
+	assert.Equal(t, http.StatusUnauthorized, rec.Code)
 }

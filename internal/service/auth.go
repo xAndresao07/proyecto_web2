@@ -20,12 +20,55 @@ type Claims struct {
 	jwt.RegisteredClaims
 }
 
+// AuthService concentra TODA la logica de autenticacion: hashing de contrasenas
+// (bcrypt) y generacion/validacion de JWT. El handler y el middleware no saben
+// de bcrypt ni de firmas: solo llaman a este servicio.
+//
+// Antes el secreto y la duracion eran una VARIABLE y una CONSTANTE globales del
+// paquete. Eso impedia configurarlos por entorno y dificultaba testear con otro
+// secreto. Ahora son campos del struct, con defaults seguros, configurables por
+// el patron funcional Options.
 type AuthService struct {
-	repo storage.UsuarioRepository
+	repo     storage.UserRepository
+	secreto  []byte
+	duracion time.Duration
 }
 
-func NuevoAuthService(repo storage.UsuarioRepository) *AuthService {
-	return &AuthService{repo: repo}
+// AuthOption configura un AuthService en su construccion (patron Options).
+type AuthOption func(*AuthService)
+
+// WithSecreto inyecta la clave de firma del JWT (desde config/.env en produccion).
+// Si recibe un secreto vacio, conserva el valor por defecto.
+func WithSecreto(secreto []byte) AuthOption {
+	return func(a *AuthService) {
+		if len(secreto) > 0 {
+			a.secreto = secreto
+		}
+	}
+}
+
+// WithDuracionToken inyecta la validez del token. Si recibe <= 0, conserva el default.
+func WithDuracionToken(d time.Duration) AuthOption {
+	return func(a *AuthService) {
+		if d > 0 {
+			a.duracion = d
+		}
+	}
+}
+
+// NuevoAuthService construye el servicio con defaults de desarrollo y aplica las
+// Options recibidas. Como opts es variadico, las llamadas antiguas
+// NuevoAuthService(repo) siguen compilando: simplemente reciben los defaults.
+func NuevoAuthService(repo storage.UserRepository, opts ...AuthOption) *AuthService {
+	s := &AuthService{
+		repo:     repo,
+		secreto:  []byte(secretJWT),
+		duracion: duracionToken,
+	}
+	for _, opt := range opts {
+		opt(s)
+	}
+	return s
 }
 
 func (s *AuthService) Registrar(email, password, rol string) (models.Usuario, error) {
@@ -70,7 +113,7 @@ func (s *AuthService) generarToken(u models.Usuario) (string, error) {
 	claims := Claims{
 		UsuarioID: u.ID,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(duracionToken)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(s.duracion)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 		},
 	}

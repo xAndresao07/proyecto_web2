@@ -1,66 +1,73 @@
 package main
 
 import (
-	"database/sql"
+	"context"
+	"errors"
 	"log"
 	"net/http"
-	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	_ "github.com/glebarez/go-sqlite"
-	"github.com/glebarez/sqlite"
 	"github.com/go-chi/chi/v5"
 	chimw "github.com/go-chi/chi/v5/middleware"
-	"gorm.io/gorm"
 
+	"proyecto/internal/config"
 	"proyecto/internal/handlers"
+	"proyecto/internal/httpserver"
 	"proyecto/internal/middleware"
-	"proyecto/internal/models"
 	"proyecto/internal/service"
 	"proyecto/internal/storage"
 )
 
+// main queda DELGADO: carga la configuracion, delega en run y traduce el error
+// a un exit code. Toda la logica de arranque vive en run, que devuelve error en
+// lugar de llamar a log.Fatal en cada paso (mas testeable y mas limpio).
 func main() {
-	// 1. GORM es el DUEÑO DEL ESQUEMA: abre la DB, migra y siembra.
-	//    Esto corre siempre, sin importar qué backend sirva después.
-	gdb, err := gorm.Open(sqlite.Open("proyecto.db"), &gorm.Config{})
+	cfg := config.Cargar()
+	if err := run(cfg); err != nil {
+		log.Fatal(err)
+	}
+}
+
+// run construye las dependencias, levanta el servidor y bloquea hasta recibir
+// una senal de apagado (Ctrl+C / SIGTERM); en ese momento hace un cierre
+// ordenado (graceful shutdown): deja de aceptar conexiones, termina las que
+// estan en curso y cierra la base de datos.
+func run(cfg config.Config) error {
+	// 1. Recursos de almacenamiento (Factory): abre DB (segun el motor elegido
+	//    en la config: sqlite local o postgres en Docker), migra, siembra y elige backend.
+
+	log.Printf("Inicializando almacenamiento: motor=%s, backend=%s", cfg.DBDriver, cfg.Backend)
+	recursos, err := storage.Inicializar(cfg.DBDriver, cfg.DBDsn, cfg.RutaDB, cfg.Backend)
 	if err != nil {
-		log.Fatal("no se pudo abrir la base de datos: ", err)
+		return err
 	}
-	if err := gdb.AutoMigrate(&models.Cita{}, &models.PuntoEncuentro{}, &models.Soporte{}); err != nil {
-		log.Fatal("falló AutoMigrate: ", err)
-	}
-	almacenGorm := storage.NuevoAlmacenSQLite(gdb)
-	almacenGorm.SembrarSiVacio()
+	defer func() { _ = recursos.Cerrar() }()
+	log.Printf("Motor de base de datos: %s | Backend de productos/categorias: %s", cfg.DBDriver, recursos.BackendUsado)
 
-	// 2. Elegir el backend que SIRVE las peticiones según la variable STORAGE.
-	//    >>> Esta es la ÚNICA decisión que cambia entre GORM y sqlc. <<<
-	var almacen storage.Almacen
-	switch os.Getenv("STORAGE") {
-	case "sqlc":
-		// Ya migramos y sembramos con GORM; cerramos esa conexión para que
-		// sqlc sea el único dueño del archivo cafeteria.db en tiempo de servicio.
-		if sqlDB, err := gdb.DB(); err == nil {
-			_ = sqlDB.Close()
-		}
-		sdb, err := sql.Open("sqlite", "proyecto.db")
-		if err != nil {
-			log.Fatal("no se pudo abrir sql.DB para sqlc: ", err)
-		}
-		almacen = storage.NuevoAlmacenSQLC(sdb)
-		log.Println("Backend de almacenamiento: sqlc (database/sql)")
-	default:
-		almacen = almacenGorm
-		log.Println("Backend de almacenamiento: GORM")
-	}
-
+	// 2. Capa de servicio. AuthService recibe secreto y duracion por Options,
+	//    tomados de la configuracion (antes eran globales hardcodeadas).
 	// 3. Inyección de dependencias hacia Servicios y Handlers
-	usuarioRepo := storage.NewUsuarioRepository(gdb)
-	authService := service.NuevoAuthService(usuarioRepo)
-	citaService := service.NuevoCitaService(almacen)
-	puntoService := service.NuevoPuntoEncuentroService(almacen)
-	soporteService := service.NuevoSoporteService(almacen)
+	citaService := service.NuevoCitaService(recursos.Almacen)
+	puntoService := service.NuevoPuntoEncuentroService(recursos.Almacen)
+	soporteService := service.NuevoSoporteService(recursos.Almacen)
 
-	servidor := handlers.NewServer(citaService, puntoService, soporteService, authService)
+	authSvc := service.NuevoAuthService(
+		recursos.Usuarios,
+		service.WithSecreto(cfg.JWTSecreto),
+		service.WithDuracionToken(cfg.JWTDuracion),
+	)
+
+	// 3. Server con sus dependencias agrupadas en un struct (escala sin crecer
+	//    la firma del constructor).
+	servidor := handlers.NewServer(handlers.Deps{
+		Citas:           citaService,
+		PuntosEncuentro: puntoService,
+		Soportes:        soporteService,
+		Auth:            authSvc,
+	})
 
 	// 4. Router Chi + Middlewares Globales
 	r := chi.NewRouter()
@@ -75,7 +82,7 @@ func main() {
 
 		// Rutas protegidas bajo Bearer Token
 		r.Group(func(r chi.Router) {
-			r.Use(middleware.Auth(authService))
+			r.Use(middleware.Auth(authSvc))
 
 			// Rutas Citas
 			r.Get("/citas", servidor.ListarCitas)
@@ -100,6 +107,41 @@ func main() {
 		})
 	})
 
-	log.Println("Servidor de Operaciones escuchando en http://localhost:8080")
-	log.Fatal(http.ListenAndServe(":8080", r))
+	// 6. Servidor HTTP configurado por Options (puerto + timeouts desde config).
+	srv := httpserver.Nuevo(
+		r,
+		httpserver.ConPuerto(cfg.Puerto),
+		httpserver.ConReadTimeout(cfg.ReadTimeout),
+		httpserver.ConWriteTimeout(cfg.WriteTimeout),
+	)
+
+	// 7. Contexto que se cancela al recibir Ctrl+C o SIGTERM.
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	// 8. Arrancar el servidor en una goroutine para no bloquear la espera de la senal.
+	errServidor := make(chan error, 1)
+	go func() {
+		log.Printf("Servidor escuchando en http://localhost%s", cfg.Puerto)
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			errServidor <- err
+		}
+	}()
+
+	// 9. Esperar: o el servidor falla, o llega la senal de apagado.
+	select {
+	case err := <-errServidor:
+		return err
+	case <-ctx.Done():
+		log.Println("Senal de apagado recibida, cerrando ordenadamente...")
+	}
+
+	// 10. Graceful shutdown: hasta 10s para terminar las requests en curso.
+	ctxApagado, cancelar := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancelar()
+	if err := srv.Shutdown(ctxApagado); err != nil {
+		return err
+	}
+	log.Println("Servidor detenido limpiamente.")
+	return nil
 }

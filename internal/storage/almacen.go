@@ -37,6 +37,11 @@ type Almacen interface {
 	SoporteRepository
 }
 
+type UserRepository interface {
+	CrearUsuario(u models.Usuario) (models.Usuario, error)
+	BuscarUsuarioPorEmail(email string) (models.Usuario, bool)
+}
+
 var _ Almacen = (*Memoria)(nil)
 var _ Almacen = (*AlmacenSQLite)(nil)
 var _ Almacen = (*AlmacenSQLC)(nil)
