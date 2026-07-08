@@ -4,7 +4,7 @@ package models
 
 type Cita struct {
 	ID             int    `json:"id" gorm:"primaryKey"`
-	SolicitantdeID string `json:"solicitante_id"`
+	SolicitanteID  string `json:"solicitante_id"`
 	TecnicoID      string `json:"tecnico_id"`
 	Estado         string `json:"estado"`
 	HoraAcordada   string `json:"hora_acordada"`
