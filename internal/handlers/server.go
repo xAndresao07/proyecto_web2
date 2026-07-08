@@ -1,15 +1,22 @@
 package handlers
 
-import "proyecto/internal/service"
+import (
+	"proyecto/internal/service"
+)
 
 type Server struct {
 	Tecnicos *service.TecnicoService
 	Auth     *service.AuthService
 }
 
-func NewServer(tecnicos *service.TecnicoService, auth *service.AuthService) *Server {
+type Deps struct {
+	Tecnicos *service.TecnicoService
+	Auth     *service.AuthService
+}
+
+func NewServer(d Deps) *Server {
 	return &Server{
-		Tecnicos: tecnicos,
-		Auth:     auth,
+		Tecnicos: d.Tecnicos,
+		Auth:     d.Auth,
 	}
 }
