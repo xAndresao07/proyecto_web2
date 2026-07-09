@@ -24,6 +24,7 @@ import (
 type almacenFake struct {
 	solicitantes map[int]models.Solicitante
 	dispositivos map[int]models.Dispositivo
+	tickets      map[int]models.TicketAyuda
 	nextID       int
 }
 
@@ -31,6 +32,7 @@ func nuevoAlmacenFake() *almacenFake {
 	return &almacenFake{
 		solicitantes: make(map[int]models.Solicitante),
 		dispositivos: make(map[int]models.Dispositivo),
+		tickets:      make(map[int]models.TicketAyuda),
 		nextID:       1,
 	}
 }
@@ -114,11 +116,44 @@ func (a *almacenFake) BorrarDispositivo(id int) bool {
 	return true
 }
 
-func (a *almacenFake) ListarTicketAyudas() []models.TicketAyuda { return nil }
-func (a *almacenFake) BuscarTicketAyudaPorID(id int) (models.TicketAyuda, bool) { return models.TicketAyuda{}, false }
-func (a *almacenFake) CrearTicketAyuda(t models.TicketAyuda) models.TicketAyuda { return t }
-func (a *almacenFake) ActualizarTicketAyuda(id int, datos models.TicketAyuda) (models.TicketAyuda, bool) { return datos, true }
-func (a *almacenFake) BorrarTicketAyuda(id int) bool { return true }
+func (a *almacenFake) ListarTicketAyudas() []models.TicketAyuda {
+	out := make([]models.TicketAyuda, 0, len(a.tickets))
+	for _, t := range a.tickets {
+		out = append(out, t)
+	}
+	return out
+}
+
+func (a *almacenFake) BuscarTicketAyudaPorID(id int) (models.TicketAyuda, bool) {
+	t, ok := a.tickets[id]
+	return t, ok
+}
+
+func (a *almacenFake) CrearTicketAyuda(t models.TicketAyuda) models.TicketAyuda {
+	if t.ID == 0 {
+		t.ID = a.nextID
+		a.nextID++
+	}
+	a.tickets[t.ID] = t
+	return t
+}
+
+func (a *almacenFake) ActualizarTicketAyuda(id int, datos models.TicketAyuda) (models.TicketAyuda, bool) {
+	if _, ok := a.tickets[id]; !ok {
+		return models.TicketAyuda{}, false
+	}
+	datos.ID = id
+	a.tickets[id] = datos
+	return datos, true
+}
+
+func (a *almacenFake) BorrarTicketAyuda(id int) bool {
+	if _, ok := a.tickets[id]; !ok {
+		return false
+	}
+	delete(a.tickets, id)
+	return true
+}
 
 
 
@@ -186,6 +221,12 @@ func construirEntorno() (http.Handler, *almacenFake, *usuarioFake) {
 			r.Get("/dispositivos/{id}", srv.ObtenerDispositivo)
 			r.Put("/dispositivos/{id}", srv.ActualizarDispositivo)
 			r.Delete("/dispositivos/{id}", srv.BorrarDispositivo)
+
+			r.Get("/tickets", srv.ListarTickets)
+			r.Post("/tickets", srv.CrearTicket)
+			r.Get("/tickets/{id}", srv.ObtenerTicket)
+			r.Put("/tickets/{id}", srv.ActualizarTicket)
+			r.Delete("/tickets/{id}", srv.BorrarTicket)
 		})
 	})
 	return r, almacen, usuarios
