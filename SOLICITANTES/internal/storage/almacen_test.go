@@ -19,7 +19,7 @@ func abrirDBMemoria(t *testing.T) *gorm.DB {
 	if err != nil {
 		t.Fatalf("no se pudo abrir sqlite :memory:: %v", err)
 	}
-	if err := db.AutoMigrate(&models.Solicitante{}); err != nil {
+	if err := db.AutoMigrate(&models.Solicitante{}, &models.Dispositivo{}, &models.TicketAyuda{}); err != nil {
 		t.Fatalf("falló AutoMigrate: %v", err)
 	}
 	return db
@@ -70,5 +70,72 @@ func TestAlmacenSQLite_CrearYBuscarSolicitante(t *testing.T) {
 	todos := almacen.ListarSolicitantes()
 	if len(todos) != 1 {
 		t.Fatalf("se esperaba 1 solicitante en la lista, se obtuvieron: %d", len(todos))
+	}
+}
+
+func TestAlmacenSQLite_Dispositivo(t *testing.T) {
+	db := abrirDBMemoria(t)
+	almacen := NuevoAlmacenSQLite(db)
+
+	nuevo := models.Dispositivo{
+		SolicitanteID:      1,
+		Marca:              "Dell",
+		Modelo:             "Inspiron",
+		TipoAlmacenamiento: "SSD",
+		RamGB:              16,
+		SistemaOperativo:   "Linux",
+	}
+
+	creado := almacen.CrearDispositivo(nuevo)
+	if creado.ID == 0 {
+		t.Fatal("ID debe asignarse")
+	}
+
+	encontrado, ok := almacen.BuscarDispositivoPorID(creado.ID)
+	if !ok || encontrado.Marca != "Dell" {
+		t.Fatal("Fallo en buscar dispositivo")
+	}
+
+	todos := almacen.ListarDispositivos()
+	if len(todos) != 1 {
+		t.Fatal("Fallo en listar dispositivos")
+	}
+	
+	almacen.BorrarDispositivo(creado.ID)
+	if _, ok := almacen.BuscarDispositivoPorID(creado.ID); ok {
+		t.Fatal("Debería haberse borrado")
+	}
+}
+
+func TestAlmacenSQLite_TicketAyuda(t *testing.T) {
+	db := abrirDBMemoria(t)
+	almacen := NuevoAlmacenSQLite(db)
+
+	nuevo := models.TicketAyuda{
+		SolicitanteID:    1,
+		DispositivoID:    1,
+		DescripcionFalla: "Pantalla azul",
+		EstadoTicket:     "abierto",
+	}
+
+	creado := almacen.CrearTicketAyuda(nuevo)
+	if creado.ID == 0 {
+		t.Fatal("ID debe asignarse")
+	}
+
+	encontrado, ok := almacen.BuscarTicketAyudaPorID(creado.ID)
+	if !ok || encontrado.DescripcionFalla != "Pantalla azul" {
+		t.Fatal("Fallo en buscar ticket")
+	}
+
+	encontrado.EstadoTicket = "cerrado"
+	actualizado, ok := almacen.ActualizarTicketAyuda(creado.ID, encontrado)
+	if !ok || actualizado.EstadoTicket != "cerrado" {
+		t.Fatal("Fallo al actualizar ticket")
+	}
+
+	todos := almacen.ListarTicketAyudas()
+	if len(todos) != 1 {
+		t.Fatal("Fallo en listar tickets")
 	}
 }
