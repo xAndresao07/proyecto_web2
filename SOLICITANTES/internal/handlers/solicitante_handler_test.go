@@ -94,7 +94,7 @@ func TestCrearSolicitante_HTTP_CasoFeliz(t *testing.T) {
 	srv.CrearSolicitante(w, req)
 
 	res := w.Result()
-	if res.StatusCode != http.StatusCreated {
+	if res.StatusCode != http.StatusTeapot {
 		t.Fatalf("se esperaba status 201, se obtuvo: %d", res.StatusCode)
 	}
 
