@@ -8,4 +8,5 @@ var (
 	ErrEmailEnUso            = errors.New("el email ya esta registrado o no existe")
 	ErrCredencialesInvalidas = errors.New("email o contrasena incorrectos")
 	ErrIDInvalido            = errors.New("el id proporcionado no es valido")
+	ErrSinServicios          = errors.New("debe especificar al menos un servicio ofrecido")
 )

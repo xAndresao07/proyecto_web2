@@ -139,3 +139,123 @@ func (a *AlmacenSQLite) SembrarSiVacio() {
 	a.db.Create(&tickets)
 
 }
+
+
+func (a *AlmacenSQLite) ListarTecnicos() []models.Tecnico {
+	var tecnicos []models.Tecnico
+	// Preload carga las relaciones (los arreglos de servicios y horarios)
+	a.db.Preload("Servicios").Preload("Horarios").Find(&tecnicos)
+	return tecnicos
+}
+
+func (a *AlmacenSQLite) BuscarTecnicoPorID(id int) (models.Tecnico, bool) {
+	var t models.Tecnico
+	if err := a.db.Preload("Servicios").Preload("Horarios").First(&t, id).Error; err != nil {
+		return models.Tecnico{}, false
+	}
+	return t, true
+}
+
+func (a *AlmacenSQLite) CrearTecnico(t models.Tecnico) models.Tecnico {
+	a.db.Create(&t) // GORM inserta el técnico y automáticamente sus servicios/horarios
+	return t
+}
+
+func (a *AlmacenSQLite) ActualizarTecnico(id int, datos models.Tecnico) (models.Tecnico, bool) {
+	var existente models.Tecnico
+	if err := a.db.First(&existente, id).Error; err != nil {
+		return models.Tecnico{}, false
+	}
+	
+	datos.ID = id
+	// Session con FullSaveAssociations obliga a GORM a actualizar también los arreglos anidados
+	a.db.Session(&gorm.Session{FullSaveAssociations: true}).Save(&datos)
+	return datos, true
+}
+
+func (a *AlmacenSQLite) BorrarTecnico(id int) bool {
+	// Select le dice a GORM que también borre los servicios y horarios asociados a este técnico
+	res := a.db.Select("Servicios", "Horarios").Delete(&models.Tecnico{ID: id})
+	return res.RowsAffected > 0
+}
+
+// Chequeo en tiempo de compilación: AlmacenSQLite debe cumplir TecnicoRepository.
+var _ TecnicoRepository = (*AlmacenSQLite)(nil)
+
+func (a *AlmacenSQLite) ListarCitas() []models.Cita { var x []models.Cita; a.db.Find(&x); return x }
+func (a *AlmacenSQLite) BuscarCitaPorID(id int) (models.Cita, bool) {
+	var c models.Cita
+	if err := a.db.First(&c, id).Error; err != nil {
+		return models.Cita{}, false
+	}
+	return c, true
+}
+func (a *AlmacenSQLite) CrearCita(c models.Cita) models.Cita { a.db.Create(&c); return c }
+func (a *AlmacenSQLite) ActualizarCita(id int, d models.Cita) (models.Cita, bool) {
+	var c models.Cita
+	if err := a.db.First(&c, id).Error; err != nil {
+		return models.Cita{}, false
+	}
+	d.ID = id
+	a.db.Save(&d)
+	return d, true
+}
+func (a *AlmacenSQLite) BorrarCita(id int) bool {
+	return a.db.Delete(&models.Cita{}, id).RowsAffected > 0
+}
+
+func (a *AlmacenSQLite) ListarPuntosEncuentro() []models.PuntoEncuentro {
+	var x []models.PuntoEncuentro
+	a.db.Find(&x)
+	return x
+}
+func (a *AlmacenSQLite) BuscarPuntoEncuentroPorID(id int) (models.PuntoEncuentro, bool) {
+	var p models.PuntoEncuentro
+	if err := a.db.First(&p, id).Error; err != nil {
+		return models.PuntoEncuentro{}, false
+	}
+	return p, true
+}
+func (a *AlmacenSQLite) CrearPuntoEncuentro(p models.PuntoEncuentro) models.PuntoEncuentro {
+	a.db.Create(&p)
+	return p
+}
+func (a *AlmacenSQLite) ActualizarPuntoEncuentro(id int, d models.PuntoEncuentro) (models.PuntoEncuentro, bool) {
+	var p models.PuntoEncuentro
+	if err := a.db.First(&p, id).Error; err != nil {
+		return models.PuntoEncuentro{}, false
+	}
+	d.ID = id
+	a.db.Save(&d)
+	return d, true
+}
+func (a *AlmacenSQLite) BorrarPuntoEncuentro(id int) bool {
+	return a.db.Delete(&models.PuntoEncuentro{}, id).RowsAffected > 0
+}
+
+func (a *AlmacenSQLite) ListarSoportes() []models.Soporte {
+	var x []models.Soporte
+	a.db.Find(&x)
+	return x
+}
+func (a *AlmacenSQLite) BuscarSoportePorID(id int) (models.Soporte, bool) {
+	var s models.Soporte
+	if err := a.db.First(&s, id).Error; err != nil {
+		return models.Soporte{}, false
+	}
+	return s, true
+}
+func (a *AlmacenSQLite) CrearSoporte(s models.Soporte) models.Soporte { a.db.Create(&s); return s }
+func (a *AlmacenSQLite) ActualizarSoporte(id int, d models.Soporte) (models.Soporte, bool) {
+	var s models.Soporte
+	if err := a.db.First(&s, id).Error; err != nil {
+		return models.Soporte{}, false
+	}
+	d.ID = id
+	a.db.Save(&d)
+	return d, true
+}
+func (a *AlmacenSQLite) BorrarSoporte(id int) bool {
+	return a.db.Delete(&models.Soporte{}, id).RowsAffected > 0
+}
+

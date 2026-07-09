@@ -9,6 +9,10 @@ type Server struct {
 	Dispositivos *service.DispositivoService
 	Tickets      *service.TicketAyudaService
 	Auth         *service.AuthService
+	Tecnicos     *service.TecnicoService
+	Citas        *service.CitaService
+	PuntosEncuentro *service.PuntoEncuentroService
+	Soportes     *service.SoporteService
 }
 
 type Deps struct {
@@ -16,6 +20,10 @@ type Deps struct {
 	Dispositivos *service.DispositivoService
 	Tickets      *service.TicketAyudaService
 	Auth         *service.AuthService
+	Tecnicos     *service.TecnicoService
+	Citas        *service.CitaService
+	PuntosEncuentro *service.PuntoEncuentroService
+	Soportes     *service.SoporteService
 }
 
 func NewServer(d Deps) *Server {
@@ -24,5 +32,9 @@ func NewServer(d Deps) *Server {
 		Dispositivos: d.Dispositivos,
 		Tickets:      d.Tickets,
 		Auth:         d.Auth,
+		Tecnicos:     d.Tecnicos,
+		Citas:        d.Citas,
+		PuntosEncuentro: d.PuntosEncuentro,
+		Soportes:     d.Soportes,
 	}
 }

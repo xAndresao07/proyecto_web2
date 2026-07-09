@@ -17,107 +17,6 @@ import (
 	"proyecto/internal/storage"
 )
 
-// =====================================================================
-// Almacen Fake
-// =====================================================================
-
-type almacenFake struct {
-	solicitantes map[int]models.Solicitante
-	dispositivos map[int]models.Dispositivo
-	nextID       int
-}
-
-func nuevoAlmacenFake() *almacenFake {
-	return &almacenFake{
-		solicitantes: make(map[int]models.Solicitante),
-		dispositivos: make(map[int]models.Dispositivo),
-		nextID:       1,
-	}
-}
-
-func (a *almacenFake) ListarSolicitantes() []models.Solicitante {
-	out := make([]models.Solicitante, 0, len(a.solicitantes))
-	for _, s := range a.solicitantes {
-		out = append(out, s)
-	}
-	return out
-}
-
-func (a *almacenFake) BuscarSolicitantePorID(id int) (models.Solicitante, bool) {
-	s, ok := a.solicitantes[id]
-	return s, ok
-}
-
-func (a *almacenFake) CrearSolicitante(s models.Solicitante) models.Solicitante {
-	s.ID = a.nextID
-	a.nextID++
-	a.solicitantes[s.ID] = s
-	return s
-}
-
-func (a *almacenFake) ActualizarSolicitante(id int, datos models.Solicitante) (models.Solicitante, bool) {
-	if _, ok := a.solicitantes[id]; !ok {
-		return models.Solicitante{}, false
-	}
-	datos.ID = id
-	a.solicitantes[id] = datos
-	return datos, true
-}
-
-func (a *almacenFake) BorrarSolicitante(id int) bool {
-	if _, ok := a.solicitantes[id]; !ok {
-		return false
-	}
-	delete(a.solicitantes, id)
-	return true
-}
-
-// Asegúrate de implementar los métodos de otras interfaces si las tienes (ej. Dispositivo, Ticket)
-var _ storage.SolicitanteRepository = (*almacenFake)(nil)
-
-func (a *almacenFake) ListarDispositivos() []models.Dispositivo {
-	out := make([]models.Dispositivo, 0, len(a.dispositivos))
-	for _, d := range a.dispositivos {
-		out = append(out, d)
-	}
-	return out
-}
-
-func (a *almacenFake) BuscarDispositivoPorID(id int) (models.Dispositivo, bool) {
-	d, ok := a.dispositivos[id]
-	return d, ok
-}
-
-func (a *almacenFake) CrearDispositivo(d models.Dispositivo) models.Dispositivo {
-	d.ID = a.nextID
-	a.nextID++
-	a.dispositivos[int(d.ID)] = d
-	return d
-}
-
-func (a *almacenFake) ActualizarDispositivo(id int, datos models.Dispositivo) (models.Dispositivo, bool) {
-	if _, ok := a.dispositivos[id]; !ok {
-		return models.Dispositivo{}, false
-	}
-	datos.ID = id
-	a.dispositivos[id] = datos
-	return datos, true
-}
-
-func (a *almacenFake) BorrarDispositivo(id int) bool {
-	if _, ok := a.dispositivos[id]; !ok {
-		return false
-	}
-	delete(a.dispositivos, id)
-	return true
-}
-
-var _ storage.DispositivoRepository = (*almacenFake)(nil)
-
-// =====================================================================
-// Usuario Fake
-// =====================================================================
-
 type usuarioFake struct {
 	porEmail map[string]models.Usuario
 	nextID   int
@@ -139,23 +38,25 @@ func (f *usuarioFake) BuscarUsuarioPorEmail(email string) (models.Usuario, bool)
 	return u, ok
 }
 
-var _ storage.UserRepository = (*usuarioFake)(nil)
+var _ storage.UsuarioRepository = (*usuarioFake)(nil)
 
-// =====================================================================
-// Entorno de Prueba
-// =====================================================================
-
-func construirEntorno() (http.Handler, *almacenFake, *usuarioFake) {
-	almacen := nuevoAlmacenFake()
-	almacen.CrearSolicitante(models.Solicitante{Nombre: "Jandry Cedeño", Facultad: "FACCI", Semestre: 6})
+func construirEntorno() (http.Handler, *storage.Memoria, *usuarioFake) {
+	almacen := storage.NuevaMemoria()
+	almacen.SeedSolicitantes()
+	almacen.SeedDispositivos()
+	almacen.SeedTickets()
+	almacen.SeedCitas()
 
 	usuarios := nuevoUsuarioFake()
 	authSvc := service.NuevoAuthService(usuarios)
 
 	srv := handlers.NewServer(handlers.Deps{
-		Solicitantes: service.NuevoSolicitanteService(almacen),
-		Dispositivos: service.NuevoDispositivoService(almacen),
-		Auth:         authSvc,
+		Solicitantes:    service.NuevoSolicitanteService(almacen),
+		Dispositivos:    service.NuevoDispositivoService(almacen),
+		Citas:           service.NuevoCitaService(almacen),
+		PuntosEncuentro: service.NuevoPuntoEncuentroService(almacen),
+		Soportes:        service.NuevoSoporteService(almacen),
+		Auth:            authSvc,
 	})
 
 	r := chi.NewRouter()
@@ -175,14 +76,28 @@ func construirEntorno() (http.Handler, *almacenFake, *usuarioFake) {
 			r.Get("/dispositivos/{id}", srv.ObtenerDispositivo)
 			r.Put("/dispositivos/{id}", srv.ActualizarDispositivo)
 			r.Delete("/dispositivos/{id}", srv.BorrarDispositivo)
+
+			r.Get("/citas", srv.ListarCitas)
+			r.Post("/citas", srv.CrearCita)
+			r.Get("/citas/{id}", srv.ObtenerCita)
+			r.Put("/citas/{id}", srv.ActualizarCita)
+			r.Delete("/citas/{id}", srv.BorrarCita)
+
+			r.Get("/puntos-encuentro", srv.ListarPuntos)
+			r.Post("/puntos-encuentro", srv.CrearPunto)
+			r.Get("/puntos-encuentro/{id}", srv.ObtenerPunto)
+			r.Put("/puntos-encuentro/{id}", srv.ActualizarPunto)
+			r.Delete("/puntos-encuentro/{id}", srv.BorrarPunto)
+
+			r.Get("/soportes", srv.ListarSoportes)
+			r.Post("/soportes", srv.CrearSoporte)
+			r.Get("/soportes/{id}", srv.ObtenerSoporte)
+			r.Put("/soportes/{id}", srv.ActualizarSoporte)
+			r.Delete("/soportes/{id}", srv.BorrarSoporte)
 		})
 	})
 	return r, almacen, usuarios
 }
-
-// =====================================================================
-// Helpers (La magia para testear HTTP)
-// =====================================================================
 
 func jsonReq(metodo, ruta, cuerpo, token string) *http.Request {
 	var body *strings.Reader
@@ -201,21 +116,15 @@ func jsonReq(metodo, ruta, cuerpo, token string) *http.Request {
 
 func tokenValido(t *testing.T, h http.Handler) string {
 	t.Helper()
-	// Añadimos el "rol" porque es probable que tu handler lo valide como obligatorio
 	cred := `{"email":"docente@uleam.edu.ec","password":"secreta123","rol":"admin"}`
 
-	// 1. Registrar usuario
 	recReg := httptest.NewRecorder()
 	h.ServeHTTP(recReg, jsonReq(http.MethodPost, "/api/v1/auth/register", cred, ""))
 
-	// Si da 409 (conflicto) es porque ya existe, lo cual está bien para los tests
 	if recReg.Code != http.StatusCreated && recReg.Code != http.StatusConflict {
-		// Si da 400, imprimimos el cuerpo para saber qué validación falló
-		t.Logf("Error en registro: %s", recReg.Body.String())
 		require.Equal(t, http.StatusCreated, recReg.Code)
 	}
 
-	// 2. Loguear usuario
 	rec := httptest.NewRecorder()
 	h.ServeHTTP(rec, jsonReq(http.MethodPost, "/api/v1/auth/login", cred, ""))
 	require.Equal(t, http.StatusOK, rec.Code)

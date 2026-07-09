@@ -4,6 +4,15 @@
 
 package sqlcdb
 
+type Citum struct {
+	ID             int64
+	SolicitanteID  string
+	TecnicoID      string
+	Estado         string
+	HoraAcordada   string
+	PuntoEncuentro string
+}
+
 type Dispositivo struct {
 	ID                 int64
 	SolicitanteID      int64
@@ -14,12 +23,50 @@ type Dispositivo struct {
 	SistemaOperativo   string
 }
 
+type HorarioTecnico struct {
+	ID                   int64
+	TecnicoID            int64
+	DiaSemana            string
+	HoraInicio           string
+	HoraFin              string
+	EstadoDisponibilidad string
+}
+
+type PuntoEncuentro struct {
+	ID                    int64
+	NombreLugar           string
+	FacultadPerteneciente string
+	DisponibleParaSoporte bool
+}
+
+type ServicioOfrecido struct {
+	ID               int64
+	TecnicoID        int64
+	NombreServicio   string
+	NivelExperiencia string
+	TiempoEstimado   string
+}
+
 type Solicitante struct {
 	ID            int64
 	Nombre        string
 	Facultad      string
 	Semestre      int64
 	NivelUrgencia string
+}
+
+type Soporte struct {
+	ID              int64
+	CitaID          int64
+	DispositivoID   int64
+	Solucion        string
+	PiezasCambiadas string
+}
+
+type Tecnico struct {
+	ID         int64
+	Nombre     string
+	Reputacion float64
 }
 
 type TicketAyuda struct {

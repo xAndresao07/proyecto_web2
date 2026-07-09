@@ -3,7 +3,6 @@ package handlers_test
 import (
 	"encoding/json"
 	"net/http"
-	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -11,12 +10,6 @@ import (
 
 	"proyecto/internal/models"
 )
-
-func ejecutar(h http.Handler, req *http.Request) *httptest.ResponseRecorder {
-	rec := httptest.NewRecorder()
-	h.ServeHTTP(rec, req)
-	return rec
-}
 
 func TestListarSolicitantes_OK(t *testing.T) {
 	h, _, _ := construirEntorno()
@@ -89,10 +82,4 @@ func TestBorrarSolicitante(t *testing.T) {
 		rec := ejecutar(h, jsonReq(http.MethodDelete, "/api/v1/solicitantes/1", "", token))
 		assert.Equal(t, http.StatusNoContent, rec.Code)
 	})
-}
-
-func TestRutaProtegida_SinToken(t *testing.T) {
-	h, _, _ := construirEntorno()
-	rec := ejecutar(h, jsonReq(http.MethodGet, "/api/v1/solicitantes", "", ""))
-	assert.Equal(t, http.StatusUnauthorized, rec.Code)
 }

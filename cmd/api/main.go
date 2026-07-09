@@ -40,6 +40,10 @@ func run(cfg config.Config) error {
 	solicitanteService := service.NuevoSolicitanteService(recursos.Almacen)
 	dispositivoService := service.NuevoDispositivoService(recursos.Almacen)
 	ticketService := service.NuevoTicketAyudaService(recursos.Almacen)
+	tecnicoService := service.NuevoTecnicoService(recursos.Almacen)
+	citaService := service.NuevoCitaService(recursos.Almacen)
+	puntoService := service.NuevoPuntoEncuentroService(recursos.Almacen)
+	soporteService := service.NuevoSoporteService(recursos.Almacen)
 
 	authSvc := service.NuevoAuthService(
 		recursos.Usuarios,
@@ -52,6 +56,10 @@ func run(cfg config.Config) error {
 		Dispositivos: dispositivoService,
 		Tickets:      ticketService,
 		Auth:         authSvc,
+		Tecnicos:     tecnicoService,
+		Citas:        citaService,
+		PuntosEncuentro:       puntoService,
+		Soportes:     soporteService,
 	})
 
 	r := chi.NewRouter()
@@ -79,6 +87,36 @@ func run(cfg config.Config) error {
 			r.Get("/dispositivos/{id}", servidor.ObtenerDispositivo)
 			r.Put("/dispositivos/{id}", servidor.ActualizarDispositivo)
 			r.Delete("/dispositivos/{id}", servidor.BorrarDispositivo)
+
+			
+			// Rutas Tecnicos
+			r.Get("/tecnicos", servidor.GetAllTecnicos)
+			r.Post("/tecnicos", servidor.CreateTecnico)
+			r.Get("/tecnicos/{id}", servidor.GetTecnicoPorID)
+			r.Put("/tecnicos/{id}", servidor.UpdateTecnico)
+			r.Delete("/tecnicos/{id}", servidor.DeleteTecnico)
+
+			
+			// Rutas Citas
+			r.Get("/citas", servidor.ListarCitas)
+			r.Post("/citas", servidor.CrearCita)
+			r.Get("/citas/{id}", servidor.ObtenerCita)
+			r.Put("/citas/{id}", servidor.ActualizarCita)
+			r.Delete("/citas/{id}", servidor.BorrarCita)
+
+			// Rutas Puntos Encuentro
+			r.Get("/puntos-encuentro", servidor.ListarPuntos)
+			r.Post("/puntos-encuentro", servidor.CrearPunto)
+			r.Get("/puntos-encuentro/{id}", servidor.ObtenerPunto)
+			r.Put("/puntos-encuentro/{id}", servidor.ActualizarPunto)
+			r.Delete("/puntos-encuentro/{id}", servidor.BorrarPunto)
+
+			// Rutas Soportes
+			r.Get("/soportes", servidor.ListarSoportes)
+			r.Post("/soportes", servidor.CrearSoporte)
+			r.Get("/soportes/{id}", servidor.ObtenerSoporte)
+			r.Put("/soportes/{id}", servidor.ActualizarSoporte)
+			r.Delete("/soportes/{id}", servidor.BorrarSoporte)
 
 			// Rutas Tickets de Ayuda
 			r.Get("/tickets", servidor.ListarTickets)

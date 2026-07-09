@@ -214,3 +214,220 @@ func (a *AlmacenSQLC) BorrarTicket(id int) bool {
 }
 
 var _ Almacen = (*AlmacenSQLC)(nil)
+
+
+func (a *AlmacenSQLC) ListarTecnicos() []models.Tecnico {
+	filas, err := a.q.ListarTecnicos(context.Background())
+	if err != nil {
+		return nil
+	}
+	var tecnicos []models.Tecnico
+	for _, f := range filas {
+		tecnicos = append(tecnicos, a.armarTecnicoCompleto(int(f.ID), f.Nombre, f.Reputacion))
+	}
+	return tecnicos
+}
+
+func (a *AlmacenSQLC) BuscarTecnicoPorID(id int) (models.Tecnico, bool) {
+	f, err := a.q.BuscarTecnicoPorID(context.Background(), int64(id))
+	if err != nil {
+		return models.Tecnico{}, false
+	}
+	return a.armarTecnicoCompleto(int(f.ID), f.Nombre, f.Reputacion), true
+}
+
+// Función auxiliar para traer servicios y horarios
+func (a *AlmacenSQLC) armarTecnicoCompleto(id int, nombre string, reputacion float64) models.Tecnico {
+	ctx := context.Background()
+	t := models.Tecnico{ID: id, Nombre: nombre, Reputacion: reputacion}
+
+	srvs, _ := a.q.ListarServiciosPorTecnico(ctx, int64(id))
+	for _, s := range srvs {
+		t.Servicios = append(t.Servicios, models.ServicioOfrecido{
+			ID: int(s.ID), TecnicoID: id, NombreServicio: s.NombreServicio, NivelExperiencia: s.NivelExperiencia, TiempoEstimado: s.TiempoEstimado,
+		})
+	}
+
+	hrs, _ := a.q.ListarHorariosPorTecnico(ctx, int64(id))
+	for _, h := range hrs {
+		t.Horarios = append(t.Horarios, models.HorarioTecnico{
+			ID: int(h.ID), TecnicoID: id, DiaSemana: h.DiaSemana, HoraInicio: h.HoraInicio, HoraFin: h.HoraFin, EstadoDisponibilidad: h.EstadoDisponibilidad,
+		})
+	}
+	return t
+}
+
+func (a *AlmacenSQLC) CrearTecnico(t models.Tecnico) models.Tecnico {
+	ctx := context.Background()
+	f, err := a.q.CrearTecnico(ctx, sqlcdb.CrearTecnicoParams{Nombre: t.Nombre, Reputacion: t.Reputacion})
+	if err != nil {
+		return models.Tecnico{}
+	}
+	t.ID = int(f.ID)
+
+	for i, s := range t.Servicios {
+		sf, _ := a.q.CrearServicio(ctx, sqlcdb.CrearServicioParams{TecnicoID: f.ID, NombreServicio: s.NombreServicio, NivelExperiencia: s.NivelExperiencia, TiempoEstimado: s.TiempoEstimado})
+		t.Servicios[i].ID = int(sf.ID)
+	}
+	for i, h := range t.Horarios {
+		hf, _ := a.q.CrearHorario(ctx, sqlcdb.CrearHorarioParams{TecnicoID: f.ID, DiaSemana: h.DiaSemana, HoraInicio: h.HoraInicio, HoraFin: h.HoraFin, EstadoDisponibilidad: h.EstadoDisponibilidad})
+		t.Horarios[i].ID = int(hf.ID)
+	}
+	return t
+}
+
+func (a *AlmacenSQLC) ActualizarTecnico(id int, datos models.Tecnico) (models.Tecnico, bool) {
+	ctx := context.Background()
+	_, err := a.q.ActualizarTecnico(ctx, sqlcdb.ActualizarTecnicoParams{Nombre: datos.Nombre, Reputacion: datos.Reputacion, ID: int64(id)})
+	if err != nil {
+		return models.Tecnico{}, false
+	}
+
+	a.q.BorrarServiciosPorTecnico(ctx, int64(id))
+	a.q.BorrarHorariosPorTecnico(ctx, int64(id))
+
+	datos.ID = id
+	for i, s := range datos.Servicios {
+		sf, _ := a.q.CrearServicio(ctx, sqlcdb.CrearServicioParams{TecnicoID: int64(id), NombreServicio: s.NombreServicio, NivelExperiencia: s.NivelExperiencia, TiempoEstimado: s.TiempoEstimado})
+		datos.Servicios[i].ID = int(sf.ID)
+	}
+	for i, h := range datos.Horarios {
+		hf, _ := a.q.CrearHorario(ctx, sqlcdb.CrearHorarioParams{TecnicoID: int64(id), DiaSemana: h.DiaSemana, HoraInicio: h.HoraInicio, HoraFin: h.HoraFin, EstadoDisponibilidad: h.EstadoDisponibilidad})
+		datos.Horarios[i].ID = int(hf.ID)
+	}
+	return datos, true
+}
+
+func (a *AlmacenSQLC) BorrarTecnico(id int) bool {
+	// Al borrar el técnico, SQLite borrará en cascada los servicios y horarios
+	filas, err := a.q.BorrarTecnico(context.Background(), int64(id))
+	if err != nil {
+		return false
+	}
+	return filas > 0
+}
+
+var _ TecnicoRepository = (*AlmacenSQLC)(nil)
+
+
+func (a *AlmacenSQLC) ListarCitas() []models.Cita {
+	f, _ := a.q.ListarCitas(context.Background())
+	out := make([]models.Cita, 0, len(f))
+	for _, x := range f {
+		out = append(out, aCita(x))
+	}
+	return out
+}
+
+func (a *AlmacenSQLC) BuscarCitaPorID(id int) (models.Cita, bool) {
+	f, err := a.q.BuscarCitaPorID(context.Background(), int64(id))
+	if err != nil {
+		return models.Cita{}, false
+	}
+	return aCita(f), true
+}
+
+func (a *AlmacenSQLC) CrearCita(c models.Cita) models.Cita {
+	// IMPORTANTE: Verifica el orden según tu queries.sql (schema.sql)
+	f, err := a.q.CrearCita(context.Background(), sqlcdb.CrearCitaParams{
+		SolicitanteID:  c.SolicitanteID,
+		TecnicoID:      c.TecnicoID,
+		Estado:         c.Estado,
+		HoraAcordada:   c.HoraAcordada,
+		PuntoEncuentro: c.PuntoEncuentro,
+	})
+	if err != nil {
+		log.Printf("Error SQLC: %v", err) // Esto te dirá qué campo falla
+		return models.Cita{}
+	}
+	return aCita(f)
+}
+
+func (a *AlmacenSQLC) ActualizarCita(id int, d models.Cita) (models.Cita, bool) {
+	f, err := a.q.ActualizarCita(context.Background(), sqlcdb.ActualizarCitaParams{
+		SolicitanteID: d.SolicitanteID, TecnicoID: d.TecnicoID, Estado: d.Estado, HoraAcordada: d.HoraAcordada, PuntoEncuentro: d.PuntoEncuentro, ID: int64(id),
+	})
+	if err != nil {
+		return models.Cita{}, false
+	}
+	return aCita(f), true
+}
+
+func (a *AlmacenSQLC) BorrarCita(id int) bool {
+	n, err := a.q.BorrarCita(context.Background(), int64(id))
+	return err == nil && n > 0
+}
+
+// --- Puntos ---
+func (a *AlmacenSQLC) ListarPuntosEncuentro() []models.PuntoEncuentro {
+	f, _ := a.q.ListarPuntosEncuentro(context.Background())
+	out := make([]models.PuntoEncuentro, 0, len(f))
+	for _, x := range f {
+		out = append(out, aPunto(x))
+	}
+	return out
+}
+
+func (a *AlmacenSQLC) BuscarPuntoEncuentroPorID(id int) (models.PuntoEncuentro, bool) {
+	f, err := a.q.BuscarPuntoEncuentroPorID(context.Background(), int64(id))
+	if err != nil {
+		return models.PuntoEncuentro{}, false
+	}
+	return aPunto(f), true
+}
+
+func (a *AlmacenSQLC) CrearPuntoEncuentro(p models.PuntoEncuentro) models.PuntoEncuentro {
+	f, _ := a.q.CrearPuntoEncuentro(context.Background(), sqlcdb.CrearPuntoEncuentroParams{NombreLugar: p.NombreLugar, FacultadPerteneciente: p.FacultadPerteneciente, DisponibleParaSoporte: p.DisponibleParaSoporte})
+	return aPunto(f)
+}
+
+func (a *AlmacenSQLC) ActualizarPuntoEncuentro(id int, d models.PuntoEncuentro) (models.PuntoEncuentro, bool) {
+	f, err := a.q.ActualizarPuntoEncuentro(context.Background(), sqlcdb.ActualizarPuntoEncuentroParams{NombreLugar: d.NombreLugar, FacultadPerteneciente: d.FacultadPerteneciente, DisponibleParaSoporte: d.DisponibleParaSoporte, ID: int64(id)})
+	if err != nil {
+		return models.PuntoEncuentro{}, false
+	}
+	return aPunto(f), true
+}
+
+func (a *AlmacenSQLC) BorrarPuntoEncuentro(id int) bool {
+	n, err := a.q.BorrarPuntoEncuentro(context.Background(), int64(id))
+	return err == nil && n > 0
+}
+
+// --- Soportes ---
+func (a *AlmacenSQLC) ListarSoportes() []models.Soporte {
+	f, _ := a.q.ListarSoportes(context.Background())
+	out := make([]models.Soporte, 0, len(f))
+	for _, x := range f {
+		out = append(out, aSoporte(x))
+	}
+	return out
+}
+
+func (a *AlmacenSQLC) BuscarSoportePorID(id int) (models.Soporte, bool) {
+	f, err := a.q.BuscarSoportePorID(context.Background(), int64(id))
+	if err != nil {
+		return models.Soporte{}, false
+	}
+	return aSoporte(f), true
+}
+
+func (a *AlmacenSQLC) CrearSoporte(s models.Soporte) models.Soporte {
+	f, _ := a.q.CrearSoporte(context.Background(), sqlcdb.CrearSoporteParams{CitaID: int64(s.CitaID), DispositivoID: int64(s.DispositivoID), Solucion: s.Solucion, PiezasCambiadas: s.PiezasCambiadas})
+	return aSoporte(f)
+}
+
+func (a *AlmacenSQLC) ActualizarSoporte(id int, s models.Soporte) (models.Soporte, bool) {
+	f, err := a.q.ActualizarSoporte(context.Background(), sqlcdb.ActualizarSoporteParams{CitaID: int64(s.CitaID), DispositivoID: int64(s.DispositivoID), Solucion: s.Solucion, PiezasCambiadas: s.PiezasCambiadas, ID: int64(id)})
+	if err != nil {
+		return models.Soporte{}, false
+	}
+	return aSoporte(f), true
+}
+
+func (a *AlmacenSQLC) BorrarSoporte(id int) bool {
+	n, err := a.q.BorrarSoporte(context.Background(), int64(id))
+	return err == nil && n > 0
+}
+
+var _ Almacen = (*AlmacenSQLC)(nil)

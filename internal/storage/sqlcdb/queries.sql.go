@@ -9,6 +9,43 @@ import (
 	"context"
 )
 
+const actualizarCita = `-- name: ActualizarCita :one
+UPDATE cita
+SET solicitante_id = ?, tecnico_id = ?, estado = ?, hora_acordada = ?, punto_encuentro = ?
+WHERE id = ?
+RETURNING id, solicitante_id, tecnico_id, estado, hora_acordada, punto_encuentro
+`
+
+type ActualizarCitaParams struct {
+	SolicitanteID  string
+	TecnicoID      string
+	Estado         string
+	HoraAcordada   string
+	PuntoEncuentro string
+	ID             int64
+}
+
+func (q *Queries) ActualizarCita(ctx context.Context, arg ActualizarCitaParams) (Citum, error) {
+	row := q.db.QueryRowContext(ctx, actualizarCita,
+		arg.SolicitanteID,
+		arg.TecnicoID,
+		arg.Estado,
+		arg.HoraAcordada,
+		arg.PuntoEncuentro,
+		arg.ID,
+	)
+	var i Citum
+	err := row.Scan(
+		&i.ID,
+		&i.SolicitanteID,
+		&i.TecnicoID,
+		&i.Estado,
+		&i.HoraAcordada,
+		&i.PuntoEncuentro,
+	)
+	return i, err
+}
+
 const actualizarDispositivo = `-- name: ActualizarDispositivo :one
 UPDATE dispositivos
 SET solicitante_id = ?, marca = ?, modelo = ?, tipo_almacenamiento = ?, ram_gb = ?, sistema_operativo = ?
@@ -49,6 +86,37 @@ func (q *Queries) ActualizarDispositivo(ctx context.Context, arg ActualizarDispo
 	return i, err
 }
 
+const actualizarPuntoEncuentro = `-- name: ActualizarPuntoEncuentro :one
+UPDATE punto_encuentros
+SET nombre_lugar = ?, facultad_perteneciente = ?, disponible_para_soporte = ?
+WHERE id = ?
+RETURNING id, nombre_lugar, facultad_perteneciente, disponible_para_soporte
+`
+
+type ActualizarPuntoEncuentroParams struct {
+	NombreLugar           string
+	FacultadPerteneciente string
+	DisponibleParaSoporte bool
+	ID                    int64
+}
+
+func (q *Queries) ActualizarPuntoEncuentro(ctx context.Context, arg ActualizarPuntoEncuentroParams) (PuntoEncuentro, error) {
+	row := q.db.QueryRowContext(ctx, actualizarPuntoEncuentro,
+		arg.NombreLugar,
+		arg.FacultadPerteneciente,
+		arg.DisponibleParaSoporte,
+		arg.ID,
+	)
+	var i PuntoEncuentro
+	err := row.Scan(
+		&i.ID,
+		&i.NombreLugar,
+		&i.FacultadPerteneciente,
+		&i.DisponibleParaSoporte,
+	)
+	return i, err
+}
+
 const actualizarSolicitante = `-- name: ActualizarSolicitante :one
 UPDATE solicitantes
 SET nombre = ?, facultad = ?, semestre = ?, nivel_urgencia = ?
@@ -80,6 +148,57 @@ func (q *Queries) ActualizarSolicitante(ctx context.Context, arg ActualizarSolic
 		&i.Semestre,
 		&i.NivelUrgencia,
 	)
+	return i, err
+}
+
+const actualizarSoporte = `-- name: ActualizarSoporte :one
+UPDATE soportes
+SET cita_id = ?, dispositivo_id = ?, solucion = ?, piezas_cambiadas = ?
+WHERE id = ?
+RETURNING id, cita_id, dispositivo_id, solucion, piezas_cambiadas
+`
+
+type ActualizarSoporteParams struct {
+	CitaID          int64
+	DispositivoID   int64
+	Solucion        string
+	PiezasCambiadas string
+	ID              int64
+}
+
+func (q *Queries) ActualizarSoporte(ctx context.Context, arg ActualizarSoporteParams) (Soporte, error) {
+	row := q.db.QueryRowContext(ctx, actualizarSoporte,
+		arg.CitaID,
+		arg.DispositivoID,
+		arg.Solucion,
+		arg.PiezasCambiadas,
+		arg.ID,
+	)
+	var i Soporte
+	err := row.Scan(
+		&i.ID,
+		&i.CitaID,
+		&i.DispositivoID,
+		&i.Solucion,
+		&i.PiezasCambiadas,
+	)
+	return i, err
+}
+
+const actualizarTecnico = `-- name: ActualizarTecnico :one
+UPDATE tecnicos SET nombre = ?, reputacion = ? WHERE id = ? RETURNING id, nombre, reputacion
+`
+
+type ActualizarTecnicoParams struct {
+	Nombre     string
+	Reputacion float64
+	ID         int64
+}
+
+func (q *Queries) ActualizarTecnico(ctx context.Context, arg ActualizarTecnicoParams) (Tecnico, error) {
+	row := q.db.QueryRowContext(ctx, actualizarTecnico, arg.Nombre, arg.Reputacion, arg.ID)
+	var i Tecnico
+	err := row.Scan(&i.ID, &i.Nombre, &i.Reputacion)
 	return i, err
 }
 
@@ -120,6 +239,18 @@ func (q *Queries) ActualizarTicketAyuda(ctx context.Context, arg ActualizarTicke
 	return i, err
 }
 
+const borrarCita = `-- name: BorrarCita :execrows
+DELETE FROM cita WHERE id = ?
+`
+
+func (q *Queries) BorrarCita(ctx context.Context, id int64) (int64, error) {
+	result, err := q.db.ExecContext(ctx, borrarCita, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const borrarDispositivo = `-- name: BorrarDispositivo :execrows
 DELETE FROM dispositivos WHERE id = ?
 `
@@ -132,12 +263,66 @@ func (q *Queries) BorrarDispositivo(ctx context.Context, id int64) (int64, error
 	return result.RowsAffected()
 }
 
+const borrarHorariosPorTecnico = `-- name: BorrarHorariosPorTecnico :exec
+DELETE FROM horario_tecnicos WHERE tecnico_id = ?
+`
+
+func (q *Queries) BorrarHorariosPorTecnico(ctx context.Context, tecnicoID int64) error {
+	_, err := q.db.ExecContext(ctx, borrarHorariosPorTecnico, tecnicoID)
+	return err
+}
+
+const borrarPuntoEncuentro = `-- name: BorrarPuntoEncuentro :execrows
+DELETE FROM punto_encuentros WHERE id = ?
+`
+
+func (q *Queries) BorrarPuntoEncuentro(ctx context.Context, id int64) (int64, error) {
+	result, err := q.db.ExecContext(ctx, borrarPuntoEncuentro, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const borrarServiciosPorTecnico = `-- name: BorrarServiciosPorTecnico :exec
+DELETE FROM servicio_ofrecidos WHERE tecnico_id = ?
+`
+
+func (q *Queries) BorrarServiciosPorTecnico(ctx context.Context, tecnicoID int64) error {
+	_, err := q.db.ExecContext(ctx, borrarServiciosPorTecnico, tecnicoID)
+	return err
+}
+
 const borrarSolicitante = `-- name: BorrarSolicitante :execrows
 DELETE FROM solicitantes WHERE id = ?
 `
 
 func (q *Queries) BorrarSolicitante(ctx context.Context, id int64) (int64, error) {
 	result, err := q.db.ExecContext(ctx, borrarSolicitante, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const borrarSoporte = `-- name: BorrarSoporte :execrows
+DELETE FROM soportes WHERE id = ?
+`
+
+func (q *Queries) BorrarSoporte(ctx context.Context, id int64) (int64, error) {
+	result, err := q.db.ExecContext(ctx, borrarSoporte, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const borrarTecnico = `-- name: BorrarTecnico :execrows
+DELETE FROM tecnicos WHERE id = ?
+`
+
+func (q *Queries) BorrarTecnico(ctx context.Context, id int64) (int64, error) {
+	result, err := q.db.ExecContext(ctx, borrarTecnico, id)
 	if err != nil {
 		return 0, err
 	}
@@ -154,6 +339,25 @@ func (q *Queries) BorrarTicketAyuda(ctx context.Context, id int64) (int64, error
 		return 0, err
 	}
 	return result.RowsAffected()
+}
+
+const buscarCitaPorID = `-- name: BuscarCitaPorID :one
+SELECT id, solicitante_id, tecnico_id, estado, hora_acordada, punto_encuentro FROM cita
+WHERE id = ?
+`
+
+func (q *Queries) BuscarCitaPorID(ctx context.Context, id int64) (Citum, error) {
+	row := q.db.QueryRowContext(ctx, buscarCitaPorID, id)
+	var i Citum
+	err := row.Scan(
+		&i.ID,
+		&i.SolicitanteID,
+		&i.TecnicoID,
+		&i.Estado,
+		&i.HoraAcordada,
+		&i.PuntoEncuentro,
+	)
+	return i, err
 }
 
 const buscarDispositivoPorID = `-- name: BuscarDispositivoPorID :one
@@ -176,6 +380,23 @@ func (q *Queries) BuscarDispositivoPorID(ctx context.Context, id int64) (Disposi
 	return i, err
 }
 
+const buscarPuntoEncuentroPorID = `-- name: BuscarPuntoEncuentroPorID :one
+SELECT id, nombre_lugar, facultad_perteneciente, disponible_para_soporte FROM punto_encuentros
+WHERE id = ?
+`
+
+func (q *Queries) BuscarPuntoEncuentroPorID(ctx context.Context, id int64) (PuntoEncuentro, error) {
+	row := q.db.QueryRowContext(ctx, buscarPuntoEncuentroPorID, id)
+	var i PuntoEncuentro
+	err := row.Scan(
+		&i.ID,
+		&i.NombreLugar,
+		&i.FacultadPerteneciente,
+		&i.DisponibleParaSoporte,
+	)
+	return i, err
+}
+
 const buscarSolicitantePorID = `-- name: BuscarSolicitantePorID :one
 SELECT id, nombre, facultad, semestre, nivel_urgencia FROM solicitantes
 WHERE id = ?
@@ -191,6 +412,35 @@ func (q *Queries) BuscarSolicitantePorID(ctx context.Context, id int64) (Solicit
 		&i.Semestre,
 		&i.NivelUrgencia,
 	)
+	return i, err
+}
+
+const buscarSoportePorID = `-- name: BuscarSoportePorID :one
+SELECT id, cita_id, dispositivo_id, solucion, piezas_cambiadas FROM soportes
+WHERE id = ?
+`
+
+func (q *Queries) BuscarSoportePorID(ctx context.Context, id int64) (Soporte, error) {
+	row := q.db.QueryRowContext(ctx, buscarSoportePorID, id)
+	var i Soporte
+	err := row.Scan(
+		&i.ID,
+		&i.CitaID,
+		&i.DispositivoID,
+		&i.Solucion,
+		&i.PiezasCambiadas,
+	)
+	return i, err
+}
+
+const buscarTecnicoPorID = `-- name: BuscarTecnicoPorID :one
+SELECT id, nombre, reputacion FROM tecnicos WHERE id = ?
+`
+
+func (q *Queries) BuscarTecnicoPorID(ctx context.Context, id int64) (Tecnico, error) {
+	row := q.db.QueryRowContext(ctx, buscarTecnicoPorID, id)
+	var i Tecnico
+	err := row.Scan(&i.ID, &i.Nombre, &i.Reputacion)
 	return i, err
 }
 
@@ -226,6 +476,40 @@ func (q *Queries) BuscarUsuarioPorEmail(ctx context.Context, email string) (Usua
 		&i.Email,
 		&i.Password,
 		&i.Rol,
+	)
+	return i, err
+}
+
+const crearCita = `-- name: CrearCita :one
+INSERT INTO cita (solicitante_id, tecnico_id, estado, hora_acordada, punto_encuentro)
+VALUES (?, ?, ?, ?, ?)
+RETURNING id, solicitante_id, tecnico_id, estado, hora_acordada, punto_encuentro
+`
+
+type CrearCitaParams struct {
+	SolicitanteID  string
+	TecnicoID      string
+	Estado         string
+	HoraAcordada   string
+	PuntoEncuentro string
+}
+
+func (q *Queries) CrearCita(ctx context.Context, arg CrearCitaParams) (Citum, error) {
+	row := q.db.QueryRowContext(ctx, crearCita,
+		arg.SolicitanteID,
+		arg.TecnicoID,
+		arg.Estado,
+		arg.HoraAcordada,
+		arg.PuntoEncuentro,
+	)
+	var i Citum
+	err := row.Scan(
+		&i.ID,
+		&i.SolicitanteID,
+		&i.TecnicoID,
+		&i.Estado,
+		&i.HoraAcordada,
+		&i.PuntoEncuentro,
 	)
 	return i, err
 }
@@ -269,6 +553,91 @@ func (q *Queries) CrearDispositivo(ctx context.Context, arg CrearDispositivoPara
 	return i, err
 }
 
+const crearHorario = `-- name: CrearHorario :one
+INSERT INTO horario_tecnicos (tecnico_id, dia_semana, hora_inicio, hora_fin, estado_disponibilidad) VALUES (?, ?, ?, ?, ?) RETURNING id, tecnico_id, dia_semana, hora_inicio, hora_fin, estado_disponibilidad
+`
+
+type CrearHorarioParams struct {
+	TecnicoID            int64
+	DiaSemana            string
+	HoraInicio           string
+	HoraFin              string
+	EstadoDisponibilidad string
+}
+
+func (q *Queries) CrearHorario(ctx context.Context, arg CrearHorarioParams) (HorarioTecnico, error) {
+	row := q.db.QueryRowContext(ctx, crearHorario,
+		arg.TecnicoID,
+		arg.DiaSemana,
+		arg.HoraInicio,
+		arg.HoraFin,
+		arg.EstadoDisponibilidad,
+	)
+	var i HorarioTecnico
+	err := row.Scan(
+		&i.ID,
+		&i.TecnicoID,
+		&i.DiaSemana,
+		&i.HoraInicio,
+		&i.HoraFin,
+		&i.EstadoDisponibilidad,
+	)
+	return i, err
+}
+
+const crearPuntoEncuentro = `-- name: CrearPuntoEncuentro :one
+INSERT INTO punto_encuentros (nombre_lugar, facultad_perteneciente, disponible_para_soporte)
+VALUES (?, ?, ?)
+RETURNING id, nombre_lugar, facultad_perteneciente, disponible_para_soporte
+`
+
+type CrearPuntoEncuentroParams struct {
+	NombreLugar           string
+	FacultadPerteneciente string
+	DisponibleParaSoporte bool
+}
+
+func (q *Queries) CrearPuntoEncuentro(ctx context.Context, arg CrearPuntoEncuentroParams) (PuntoEncuentro, error) {
+	row := q.db.QueryRowContext(ctx, crearPuntoEncuentro, arg.NombreLugar, arg.FacultadPerteneciente, arg.DisponibleParaSoporte)
+	var i PuntoEncuentro
+	err := row.Scan(
+		&i.ID,
+		&i.NombreLugar,
+		&i.FacultadPerteneciente,
+		&i.DisponibleParaSoporte,
+	)
+	return i, err
+}
+
+const crearServicio = `-- name: CrearServicio :one
+INSERT INTO servicio_ofrecidos (tecnico_id, nombre_servicio, nivel_experiencia, tiempo_estimado) VALUES (?, ?, ?, ?) RETURNING id, tecnico_id, nombre_servicio, nivel_experiencia, tiempo_estimado
+`
+
+type CrearServicioParams struct {
+	TecnicoID        int64
+	NombreServicio   string
+	NivelExperiencia string
+	TiempoEstimado   string
+}
+
+func (q *Queries) CrearServicio(ctx context.Context, arg CrearServicioParams) (ServicioOfrecido, error) {
+	row := q.db.QueryRowContext(ctx, crearServicio,
+		arg.TecnicoID,
+		arg.NombreServicio,
+		arg.NivelExperiencia,
+		arg.TiempoEstimado,
+	)
+	var i ServicioOfrecido
+	err := row.Scan(
+		&i.ID,
+		&i.TecnicoID,
+		&i.NombreServicio,
+		&i.NivelExperiencia,
+		&i.TiempoEstimado,
+	)
+	return i, err
+}
+
 const crearSolicitante = `-- name: CrearSolicitante :one
 INSERT INTO solicitantes (id, nombre, facultad, semestre, nivel_urgencia)
 VALUES (?, ?, ?, ?, ?)
@@ -299,6 +668,53 @@ func (q *Queries) CrearSolicitante(ctx context.Context, arg CrearSolicitantePara
 		&i.Semestre,
 		&i.NivelUrgencia,
 	)
+	return i, err
+}
+
+const crearSoporte = `-- name: CrearSoporte :one
+INSERT INTO soportes (cita_id, dispositivo_id, solucion, piezas_cambiadas)
+VALUES (?, ?, ?, ?)
+RETURNING id, cita_id, dispositivo_id, solucion, piezas_cambiadas
+`
+
+type CrearSoporteParams struct {
+	CitaID          int64
+	DispositivoID   int64
+	Solucion        string
+	PiezasCambiadas string
+}
+
+func (q *Queries) CrearSoporte(ctx context.Context, arg CrearSoporteParams) (Soporte, error) {
+	row := q.db.QueryRowContext(ctx, crearSoporte,
+		arg.CitaID,
+		arg.DispositivoID,
+		arg.Solucion,
+		arg.PiezasCambiadas,
+	)
+	var i Soporte
+	err := row.Scan(
+		&i.ID,
+		&i.CitaID,
+		&i.DispositivoID,
+		&i.Solucion,
+		&i.PiezasCambiadas,
+	)
+	return i, err
+}
+
+const crearTecnico = `-- name: CrearTecnico :one
+INSERT INTO tecnicos (nombre, reputacion) VALUES (?, ?) RETURNING id, nombre, reputacion
+`
+
+type CrearTecnicoParams struct {
+	Nombre     string
+	Reputacion float64
+}
+
+func (q *Queries) CrearTecnico(ctx context.Context, arg CrearTecnicoParams) (Tecnico, error) {
+	row := q.db.QueryRowContext(ctx, crearTecnico, arg.Nombre, arg.Reputacion)
+	var i Tecnico
+	err := row.Scan(&i.ID, &i.Nombre, &i.Reputacion)
 	return i, err
 }
 
@@ -370,6 +786,42 @@ func (q *Queries) CrearUsuario(ctx context.Context, arg CrearUsuarioParams) (Usu
 	return i, err
 }
 
+const listarCitas = `-- name: ListarCitas :many
+
+SELECT id, solicitante_id, tecnico_id, estado, hora_acordada, punto_encuentro FROM cita
+`
+
+// ===================== CITAS =====================
+func (q *Queries) ListarCitas(ctx context.Context) ([]Citum, error) {
+	rows, err := q.db.QueryContext(ctx, listarCitas)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Citum
+	for rows.Next() {
+		var i Citum
+		if err := rows.Scan(
+			&i.ID,
+			&i.SolicitanteID,
+			&i.TecnicoID,
+			&i.Estado,
+			&i.HoraAcordada,
+			&i.PuntoEncuentro,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listarDispositivos = `-- name: ListarDispositivos :many
 
 SELECT id, solicitante_id, marca, modelo, tipo_almacenamiento, ram_gb, sistema_operativo FROM dispositivos
@@ -407,6 +859,107 @@ func (q *Queries) ListarDispositivos(ctx context.Context) ([]Dispositivo, error)
 	return items, nil
 }
 
+const listarHorariosPorTecnico = `-- name: ListarHorariosPorTecnico :many
+SELECT id, tecnico_id, dia_semana, hora_inicio, hora_fin, estado_disponibilidad FROM horario_tecnicos WHERE tecnico_id = ?
+`
+
+func (q *Queries) ListarHorariosPorTecnico(ctx context.Context, tecnicoID int64) ([]HorarioTecnico, error) {
+	rows, err := q.db.QueryContext(ctx, listarHorariosPorTecnico, tecnicoID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []HorarioTecnico
+	for rows.Next() {
+		var i HorarioTecnico
+		if err := rows.Scan(
+			&i.ID,
+			&i.TecnicoID,
+			&i.DiaSemana,
+			&i.HoraInicio,
+			&i.HoraFin,
+			&i.EstadoDisponibilidad,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listarPuntosEncuentro = `-- name: ListarPuntosEncuentro :many
+
+SELECT id, nombre_lugar, facultad_perteneciente, disponible_para_soporte FROM punto_encuentros
+`
+
+// ===================== PUNTOS DE ENCUENTRO =====================
+func (q *Queries) ListarPuntosEncuentro(ctx context.Context) ([]PuntoEncuentro, error) {
+	rows, err := q.db.QueryContext(ctx, listarPuntosEncuentro)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []PuntoEncuentro
+	for rows.Next() {
+		var i PuntoEncuentro
+		if err := rows.Scan(
+			&i.ID,
+			&i.NombreLugar,
+			&i.FacultadPerteneciente,
+			&i.DisponibleParaSoporte,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listarServiciosPorTecnico = `-- name: ListarServiciosPorTecnico :many
+SELECT id, tecnico_id, nombre_servicio, nivel_experiencia, tiempo_estimado FROM servicio_ofrecidos WHERE tecnico_id = ?
+`
+
+func (q *Queries) ListarServiciosPorTecnico(ctx context.Context, tecnicoID int64) ([]ServicioOfrecido, error) {
+	rows, err := q.db.QueryContext(ctx, listarServiciosPorTecnico, tecnicoID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ServicioOfrecido
+	for rows.Next() {
+		var i ServicioOfrecido
+		if err := rows.Scan(
+			&i.ID,
+			&i.TecnicoID,
+			&i.NombreServicio,
+			&i.NivelExperiencia,
+			&i.TiempoEstimado,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listarSolicitantes = `-- name: ListarSolicitantes :many
 
 SELECT id, nombre, facultad, semestre, nivel_urgencia FROM solicitantes
@@ -429,6 +982,68 @@ func (q *Queries) ListarSolicitantes(ctx context.Context) ([]Solicitante, error)
 			&i.Semestre,
 			&i.NivelUrgencia,
 		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listarSoportes = `-- name: ListarSoportes :many
+
+SELECT id, cita_id, dispositivo_id, solucion, piezas_cambiadas FROM soportes
+`
+
+// ===================== SOPORTES =====================
+func (q *Queries) ListarSoportes(ctx context.Context) ([]Soporte, error) {
+	rows, err := q.db.QueryContext(ctx, listarSoportes)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Soporte
+	for rows.Next() {
+		var i Soporte
+		if err := rows.Scan(
+			&i.ID,
+			&i.CitaID,
+			&i.DispositivoID,
+			&i.Solucion,
+			&i.PiezasCambiadas,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listarTecnicos = `-- name: ListarTecnicos :many
+SELECT id, nombre, reputacion FROM tecnicos
+`
+
+func (q *Queries) ListarTecnicos(ctx context.Context) ([]Tecnico, error) {
+	rows, err := q.db.QueryContext(ctx, listarTecnicos)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Tecnico
+	for rows.Next() {
+		var i Tecnico
+		if err := rows.Scan(&i.ID, &i.Nombre, &i.Reputacion); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
