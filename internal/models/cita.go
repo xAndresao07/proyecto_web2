@@ -9,4 +9,7 @@ type Cita struct {
 	Estado         string `json:"estado"`
 	HoraAcordada   string `json:"hora_acordada"`
 	PuntoEncuentro string `json:"punto_encuentro"`
+
+	// Relación Has-Many: Una Cita tiene Soportes asociados
+	Soportes []Soporte `json:"soportes,omitempty" gorm:"foreignKey:CitaID"`
 }

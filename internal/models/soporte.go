@@ -8,4 +8,7 @@ type Soporte struct {
 	DispositivoID   int    `json:"dispositivo_id"`
 	Solucion        string `json:"solucion"`
 	PiezasCambiadas string `json:"piezas_cambiadas"`
+
+	// Relación Belongs-To: Este soporte pertenece a una Cita
+	Cita *Cita `json:"cita,omitempty" gorm:"foreignKey:CitaID"`
 }
