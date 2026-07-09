@@ -12,4 +12,6 @@ type Dispositivo struct {
 	TipoAlmacenamiento string `json:"tipo_almacenamiento" gorm:"not null"`
 	RamGB              int    `json:"ram_gb" gorm:"not null"`
 	SistemaOperativo   string `json:"sistema_operativo" gorm:"not null"`
-}
+
+	// Relación (Belongs-To)
+	Solicitante *Solicitante `json:"solicitante,omitempty" gorm:"foreignKey:SolicitanteID"`

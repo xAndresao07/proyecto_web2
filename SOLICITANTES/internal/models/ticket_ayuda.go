@@ -12,4 +12,7 @@ type TicketAyuda struct {
 	DescripcionFalla  string `json:"descripcion_falla" gorm:"not null"`
 	SoftwareRequerido string `json:"software_requerido"`
 	EstadoTicket      string `json:"estado_ticket" gorm:"not null;default:abierto"`
-}
+
+	// Relaciones (Belongs-To)
+	Solicitante *Solicitante `json:"solicitante,omitempty" gorm:"foreignKey:SolicitanteID"`
+	Dispositivo *Dispositivo `json:"dispositivo,omitempty" gorm:"foreignKey:DispositivoID"`

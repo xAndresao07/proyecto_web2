@@ -12,4 +12,7 @@ type Solicitante struct {
 	Facultad      string `json:"facultad" gorm:"not null"`
 	Semestre      int    `json:"semestre" gorm:"not null"`
 	NivelUrgencia string `json:"nivel_urgencia" gorm:"not null;default:normal"`
-}
+
+	// Relaciones (Has-Many)
+	Dispositivos []Dispositivo `json:"dispositivos,omitempty" gorm:"foreignKey:SolicitanteID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+	Tickets      []TicketAyuda `json:"tickets,omitempty" gorm:"foreignKey:SolicitanteID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
