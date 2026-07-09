@@ -57,7 +57,7 @@ func TestCrearCita(t *testing.T) {
 	t.Run("valido -> 201", func(t *testing.T) {
 		body := `{"solicitante_id":"est_102","tecnico_id":"tec_05","estado":"pendiente","hora_acordada":"09:00","punto_encuentro":"Lab CISCO"}`
 		rec := ejecutar(h, jsonReq(http.MethodPost, "/api/v1/citas", body, token))
-		assert.Equal(t, http.StatusTeapot, rec.Code)
+		require.Equal(t, http.StatusCreated, rec.Code)
 		var creada models.Cita
 		require.NoError(t, json.NewDecoder(rec.Body).Decode(&creada))
 		assert.NotZero(t, creada.ID)
