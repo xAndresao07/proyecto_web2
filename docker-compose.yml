@@ -27,7 +27,7 @@ services:
       DB_DRIVER: postgres
       DB_DSN: "host=db user=cafeteria password=cafeteria dbname=cafeteria port=5432 sslmode=disable TimeZone=America/Guayaquil"
       JWT_SECRETO: "cambia-esto-en-produccion"
-      STORAGE: gorm
+      STORAGE: sqlc
     ports:
       - "8080:8080"
     depends_on:

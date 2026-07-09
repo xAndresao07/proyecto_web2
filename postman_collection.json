@@ -1,0 +1,480 @@
+{
+	"info": {
+		"name": "API Gestión de Citas - ULEAM",
+		"description": "Colección completa para los módulos de Citas, Puntos de Encuentro, Soportes y Autenticación del proyecto.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Auth",
+			"item": [
+				{
+					"name": "Registrar Usuario",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"andres@uleam.edu.ec\",\n    \"password\": \"secreta123\",\n    \"rol\": \"solicitante\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/auth/registrar",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"registrar"
+							]
+						}
+					}
+				},
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if (jsonData.token) {",
+									"    pm.collectionVariables.set(\"token\", jsonData.token);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"andres@uleam.edu.ec\",\n    \"password\": \"secreta123\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/auth/login",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"login"
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Citas",
+			"item": [
+				{
+					"name": "Crear Cita",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"solicitante_id\": \"est_001\",\n    \"tecnico_id\": \"tec_099\",\n    \"estado\": \"pendiente\",\n    \"hora_acordada\": \"14:30\",\n    \"punto_encuentro\": \"Biblioteca ULEAM\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/citas",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"citas"
+							]
+						}
+					}
+				},
+				{
+					"name": "Listar Citas",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/citas",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"citas"
+							]
+						}
+					}
+				},
+				{
+					"name": "Obtener Cita",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/citas/1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"citas",
+								"1"
+							]
+						}
+					}
+				},
+				{
+					"name": "Actualizar Cita",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"solicitante_id\": \"est_001\",\n    \"tecnico_id\": \"tec_099\",\n    \"estado\": \"completada\",\n    \"hora_acordada\": \"15:00\",\n    \"punto_encuentro\": \"Biblioteca ULEAM\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/citas/1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"citas",
+								"1"
+							]
+						}
+					}
+				},
+				{
+					"name": "Borrar Cita",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/citas/1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"citas",
+								"1"
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Puntos de Encuentro",
+			"item": [
+				{
+					"name": "Crear Punto",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"nombre_lugar\": \"Laboratorio CISCO\",\n    \"facultad_perteneciente\": \"FACCI\",\n    \"disponible_para_soporte\": true\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/puntos-encuentro",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"puntos-encuentro"
+							]
+						}
+					}
+				},
+				{
+					"name": "Listar Puntos",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/puntos-encuentro",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"puntos-encuentro"
+							]
+						}
+					}
+				},
+				{
+					"name": "Obtener Punto",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/puntos-encuentro/1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"puntos-encuentro",
+								"1"
+							]
+						}
+					}
+				},
+				{
+					"name": "Actualizar Punto",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"nombre_lugar\": \"Laboratorio CISCO 2\",\n    \"facultad_perteneciente\": \"FACCI\",\n    \"disponible_para_soporte\": false\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/puntos-encuentro/1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"puntos-encuentro",
+								"1"
+							]
+						}
+					}
+				},
+				{
+					"name": "Borrar Punto",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/puntos-encuentro/1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"puntos-encuentro",
+								"1"
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Soportes",
+			"item": [
+				{
+					"name": "Crear Soporte",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"cita_id\": 1,\n    \"dispositivo_id\": 501,\n    \"solucion\": \"Formateo e instalación de Windows 11\",\n    \"piezas_cambiadas\": \"Disco SSD 500GB\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/soportes",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"soportes"
+							]
+						}
+					}
+				},
+				{
+					"name": "Listar Soportes",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/soportes",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"soportes"
+							]
+						}
+					}
+				},
+				{
+					"name": "Obtener Soporte",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/soportes/1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"soportes",
+								"1"
+							]
+						}
+					}
+				},
+				{
+					"name": "Actualizar Soporte",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"cita_id\": 1,\n    \"dispositivo_id\": 501,\n    \"solucion\": \"Instalación exitosa de drivers\",\n    \"piezas_cambiadas\": \"Ninguna\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/soportes/1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"soportes",
+								"1"
+							]
+						}
+					}
+				},
+				{
+					"name": "Borrar Soporte",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/soportes/1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"soportes",
+								"1"
+							]
+						}
+					}
+				}
+			]
+		}
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{token}}",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8080",
+			"type": "string"
+		},
+		{
+			"key": "token",
+			"value": "",
+			"type": "string"
+		}
+	]
+}

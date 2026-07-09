@@ -41,7 +41,7 @@ func Inicializar(driver, dsn, rutaDB, backend string) (*Recursos, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := gdb.AutoMigrate(&models.Cita{}, &models.PuntoEncuentro{}, &models.Soporte{}); err != nil {
+	if err := gdb.AutoMigrate(&models.Cita{}, &models.PuntoEncuentro{}, &models.Soporte{}, &models.Usuario{}); err != nil {
 		return nil, fmt.Errorf("AutoMigrate: %w", err)
 	}
 	almacenGorm := NuevoAlmacenSQLite(gdb)
