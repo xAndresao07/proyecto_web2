@@ -32,7 +32,7 @@ func nuevaDBPrueba(t *testing.T) *gorm.DB {
 		t.Fatalf("no se pudo obtener *sql.DB: %v", err)
 	}
 	sqlDB.SetMaxOpenConns(1)
-	if err := gdb.AutoMigrate(&models.Solicitante{}, &models.Solicitante{}, &models.Usuario{}); err != nil {
+	if err := gdb.AutoMigrate(&models.Solicitante{}, &models.Dispositivo{}, &models.TicketAyuda{}, &models.Tecnico{}, &models.ServicioOfrecido{}, &models.HorarioTecnico{}, &models.Cita{}, &models.PuntoEncuentro{}, &models.Soporte{}, &models.Usuario{}); err != nil {
 		t.Fatalf("fallo AutoMigrate: %v", err)
 	}
 	return gdb
@@ -89,4 +89,77 @@ func TestSQLite_UsuarioEmailUnico(t *testing.T) {
 	if _, err := repo.CrearUsuario(models.Usuario{Email: "ana@uleam.edu.ec", PasswordHash: "hash2"}); err == nil {
 		t.Errorf("esperaba error por email duplicado (indice unico), no lo hubo")
 	}
+}
+
+
+func TestSQLite_DispositivoCRUD(t *testing.T) {
+	alm := NuevoAlmacenSQLite(nuevaDBPrueba(t))
+	creado := alm.CrearDispositivo(models.Dispositivo{Marca: "HP"})
+	if creado.ID == 0 { t.Fatalf("ID no asignado") }
+	encontrado, ok := alm.BuscarDispositivoPorID(creado.ID)
+	if !ok || encontrado.Marca != "HP" { t.Fatalf("No se encontro") }
+	_, ok = alm.ActualizarDispositivo(creado.ID, models.Dispositivo{Marca: "DELL"})
+	if !ok { t.Fatalf("No se actualizo") }
+	if !alm.BorrarDispositivo(creado.ID) { t.Fatalf("No se borro") }
+	if len(alm.ListarDispositivos()) != 0 { t.Fatalf("Deberia estar vacio") }
+}
+
+func TestSQLite_TicketAyudaCRUD(t *testing.T) {
+	alm := NuevoAlmacenSQLite(nuevaDBPrueba(t))
+	creado := alm.CrearTicket(models.TicketAyuda{DescripcionFalla: "Falla"})
+	if creado.ID == 0 { t.Fatalf("ID no asignado") }
+	encontrado, ok := alm.BuscarTicketPorID(creado.ID)
+	if !ok || encontrado.DescripcionFalla != "Falla" { t.Fatalf("No se encontro") }
+	_, ok = alm.ActualizarTicket(creado.ID, models.TicketAyuda{DescripcionFalla: "Ok"})
+	if !ok { t.Fatalf("No se actualizo") }
+	if !alm.BorrarTicket(creado.ID) { t.Fatalf("No se borro") }
+	if len(alm.ListarTickets()) != 0 { t.Fatalf("Deberia estar vacio") }
+}
+
+func TestSQLite_TecnicoCRUD(t *testing.T) {
+	alm := NuevoAlmacenSQLite(nuevaDBPrueba(t))
+	creado := alm.CrearTecnico(models.Tecnico{Nombre: "Tech"})
+	if creado.ID == 0 { t.Fatalf("ID no asignado") }
+	encontrado, ok := alm.BuscarTecnicoPorID(creado.ID)
+	if !ok || encontrado.Nombre != "Tech" { t.Fatalf("No se encontro") }
+	_, ok = alm.ActualizarTecnico(creado.ID, models.Tecnico{Nombre: "Tech2"})
+	if !ok { t.Fatalf("No se actualizo") }
+	if !alm.BorrarTecnico(creado.ID) { t.Fatalf("No se borro") }
+	if len(alm.ListarTecnicos()) != 0 { t.Fatalf("Deberia estar vacio") }
+}
+
+func TestSQLite_CitaCRUD(t *testing.T) {
+	alm := NuevoAlmacenSQLite(nuevaDBPrueba(t))
+	creado := alm.CrearCita(models.Cita{Estado: "Pendiente"})
+	if creado.ID == 0 { t.Fatalf("ID no asignado") }
+	encontrado, ok := alm.BuscarCitaPorID(creado.ID)
+	if !ok || encontrado.Estado != "Pendiente" { t.Fatalf("No se encontro") }
+	_, ok = alm.ActualizarCita(creado.ID, models.Cita{Estado: "Fin"})
+	if !ok { t.Fatalf("No se actualizo") }
+	if !alm.BorrarCita(creado.ID) { t.Fatalf("No se borro") }
+	if len(alm.ListarCitas()) != 0 { t.Fatalf("Deberia estar vacio") }
+}
+
+func TestSQLite_PuntoEncuentroCRUD(t *testing.T) {
+	alm := NuevoAlmacenSQLite(nuevaDBPrueba(t))
+	creado := alm.CrearPuntoEncuentro(models.PuntoEncuentro{NombreLugar: "Lab"})
+	if creado.ID == 0 { t.Fatalf("ID no asignado") }
+	encontrado, ok := alm.BuscarPuntoEncuentroPorID(creado.ID)
+	if !ok || encontrado.NombreLugar != "Lab" { t.Fatalf("No se encontro") }
+	_, ok = alm.ActualizarPuntoEncuentro(creado.ID, models.PuntoEncuentro{NombreLugar: "Lab2"})
+	if !ok { t.Fatalf("No se actualizo") }
+	if !alm.BorrarPuntoEncuentro(creado.ID) { t.Fatalf("No se borro") }
+	if len(alm.ListarPuntosEncuentro()) != 0 { t.Fatalf("Deberia estar vacio") }
+}
+
+func TestSQLite_SoporteCRUD(t *testing.T) {
+	alm := NuevoAlmacenSQLite(nuevaDBPrueba(t))
+	creado := alm.CrearSoporte(models.Soporte{Solucion: "Sol"})
+	if creado.ID == 0 { t.Fatalf("ID no asignado") }
+	encontrado, ok := alm.BuscarSoportePorID(creado.ID)
+	if !ok || encontrado.Solucion != "Sol" { t.Fatalf("No se encontro") }
+	_, ok = alm.ActualizarSoporte(creado.ID, models.Soporte{Solucion: "Sol2"})
+	if !ok { t.Fatalf("No se actualizo") }
+	if !alm.BorrarSoporte(creado.ID) { t.Fatalf("No se borro") }
+	if len(alm.ListarSoportes()) != 0 { t.Fatalf("Deberia estar vacio") }
 }
