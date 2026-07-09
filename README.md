@@ -18,9 +18,9 @@ El proyecto hace uso de las siguientes herramientas estándar para garantizar co
 
 * **Lenguaje:** Go (Golang) 1.22+
 * **Enrutador:** Chi Router
-* **ORM y Base de Datos:** GORM con SQLite (aún indefinido)
-* **Seguridad:** golang-jwt para autenticación
-* **Testing:** Postman (para pruebas unitarias y mocks en hitos posteriores)
+* **ORM y Base de Datos:** `sqlc` (para generación de código SQL seguro) con PostgreSQL (vía Docker) y SQLite (local).
+* **Seguridad:** `golang-jwt` para autenticación.
+* **Testing:** Pruebas unitarias nativas en Go (`testing`, `httptest`) apoyadas por la librería `testify` (`assert`, `require`, `mock`). Postman para pruebas e2e.
 
 ## Estructura Inicial del Proyecto
 La arquitectura está pensada en capas(con posibilidad a cambios):
@@ -28,5 +28,5 @@ La arquitectura está pensada en capas(con posibilidad a cambios):
 - `/cmd/api/`: Punto de entrada principal y configuración del servidor web.
 - `/internal/models/`: Estructuras de datos (Structs) y entidades del negocio.
 - `/internal/handlers/`: Controladores que reciben peticiones HTTP y devuelven respuestas.
-- `/internal/services/`: Lógica de negocio dura y validaciones de reglas.
-- `/internal/repositories/`: Operaciones directas contra la base de datos a través de GORM.
+- `/internal/service/`: Lógica de negocio dura y validaciones de reglas.
+- `/internal/storage/`: Operaciones directas contra la base de datos e interfaces de repositorios.

@@ -23,12 +23,14 @@ import (
 
 type almacenFake struct {
 	solicitantes map[int]models.Solicitante
+	dispositivos map[int]models.Dispositivo
 	nextID       int
 }
 
 func nuevoAlmacenFake() *almacenFake {
 	return &almacenFake{
 		solicitantes: make(map[int]models.Solicitante),
+		dispositivos: make(map[int]models.Dispositivo),
 		nextID:       1,
 	}
 }
@@ -73,6 +75,45 @@ func (a *almacenFake) BorrarSolicitante(id int) bool {
 // Asegúrate de implementar los métodos de otras interfaces si las tienes (ej. Dispositivo, Ticket)
 var _ storage.SolicitanteRepository = (*almacenFake)(nil)
 
+func (a *almacenFake) ListarDispositivos() []models.Dispositivo {
+	out := make([]models.Dispositivo, 0, len(a.dispositivos))
+	for _, d := range a.dispositivos {
+		out = append(out, d)
+	}
+	return out
+}
+
+func (a *almacenFake) BuscarDispositivoPorID(id int) (models.Dispositivo, bool) {
+	d, ok := a.dispositivos[id]
+	return d, ok
+}
+
+func (a *almacenFake) CrearDispositivo(d models.Dispositivo) models.Dispositivo {
+	d.ID = a.nextID
+	a.nextID++
+	a.dispositivos[int(d.ID)] = d
+	return d
+}
+
+func (a *almacenFake) ActualizarDispositivo(id int, datos models.Dispositivo) (models.Dispositivo, bool) {
+	if _, ok := a.dispositivos[id]; !ok {
+		return models.Dispositivo{}, false
+	}
+	datos.ID = id
+	a.dispositivos[id] = datos
+	return datos, true
+}
+
+func (a *almacenFake) BorrarDispositivo(id int) bool {
+	if _, ok := a.dispositivos[id]; !ok {
+		return false
+	}
+	delete(a.dispositivos, id)
+	return true
+}
+
+var _ storage.DispositivoRepository = (*almacenFake)(nil)
+
 // =====================================================================
 // Usuario Fake
 // =====================================================================
@@ -113,6 +154,7 @@ func construirEntorno() (http.Handler, *almacenFake, *usuarioFake) {
 
 	srv := handlers.NewServer(handlers.Deps{
 		Solicitantes: service.NuevoSolicitanteService(almacen),
+		Dispositivos: service.NuevoDispositivoService(almacen),
 		Auth:         authSvc,
 	})
 
@@ -127,6 +169,12 @@ func construirEntorno() (http.Handler, *almacenFake, *usuarioFake) {
 			r.Get("/solicitantes/{id}", srv.ObtenerSolicitante)
 			r.Put("/solicitantes/{id}", srv.ActualizarSolicitante)
 			r.Delete("/solicitantes/{id}", srv.BorrarSolicitantes)
+
+			r.Get("/dispositivos", srv.ListarDispositivos)
+			r.Post("/dispositivos", srv.CrearDispositivo)
+			r.Get("/dispositivos/{id}", srv.ObtenerDispositivo)
+			r.Put("/dispositivos/{id}", srv.ActualizarDispositivo)
+			r.Delete("/dispositivos/{id}", srv.BorrarDispositivo)
 		})
 	})
 	return r, almacen, usuarios
