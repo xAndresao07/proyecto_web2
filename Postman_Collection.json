@@ -1,0 +1,310 @@
+{
+  "info": {
+    "name": "EmparejaTech API - Proyecto Web II (H3)",
+    "description": "Colección para la API de Optimización Técnica (ULEAM). Incluye Auth y los 3 módulos: Técnicos, Solicitantes e Intervenciones.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8080/api/v1", "type": "string" },
+    { "key": "token", "value": "", "type": "string" },
+    { "key": "tecnico_id", "value": "1", "type": "string" },
+    { "key": "solicitante_id", "value": "1", "type": "string" },
+    { "key": "dispositivo_id", "value": "1", "type": "string" },
+    { "key": "ticket_id", "value": "1", "type": "string" },
+    { "key": "cita_id", "value": "1", "type": "string" },
+    { "key": "punto_id", "value": "1", "type": "string" },
+    { "key": "soporte_id", "value": "1", "type": "string" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Registrar",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"tecnico1@uleam.edu.ec\",\n  \"password\": \"claveSegura123\",\n  \"rol\": \"tecnico\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/auth/registrar", "host": ["{{base_url}}"], "path": ["auth", "registrar"] }
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const data = pm.response.json();",
+                  "if (data.token) { pm.collectionVariables.set('token', data.token); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"tecnico1@uleam.edu.ec\",\n  \"password\": \"claveSegura123\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/auth/login", "host": ["{{base_url}}"], "path": ["auth", "login"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Técnicos (Anthony Solórzano)",
+      "item": [
+        {
+          "name": "Listar técnicos",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/tecnicos", "host": ["{{base_url}}"], "path": ["tecnicos"] } }
+        },
+        {
+          "name": "Crear técnico",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Carlos Zambrano\",\n  \"reputacion\": 4.8,\n  \"servicios\": [\n    { \"nombre_servicio\": \"Instalación de SO\", \"nivel_experiencia\": \"avanzado\", \"tiempo_estimado\": \"45min\" }\n  ],\n  \"horarios\": [\n    { \"dia_semana\": \"martes\", \"hora_inicio\": \"14:00\", \"hora_fin\": \"16:00\", \"estado_disponibilidad\": \"libre\" }\n  ]\n}"
+            },
+            "url": { "raw": "{{base_url}}/tecnicos", "host": ["{{base_url}}"], "path": ["tecnicos"] }
+          }
+        },
+        {
+          "name": "Obtener técnico por ID",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/tecnicos/{{tecnico_id}}", "host": ["{{base_url}}"], "path": ["tecnicos", "{{tecnico_id}}"] } }
+        },
+        {
+          "name": "Actualizar técnico",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"nombre\": \"Carlos Zambrano\",\n  \"reputacion\": 5.0\n}" },
+            "url": { "raw": "{{base_url}}/tecnicos/{{tecnico_id}}", "host": ["{{base_url}}"], "path": ["tecnicos", "{{tecnico_id}}"] }
+          }
+        },
+        {
+          "name": "Borrar técnico",
+          "request": { "method": "DELETE", "url": { "raw": "{{base_url}}/tecnicos/{{tecnico_id}}", "host": ["{{base_url}}"], "path": ["tecnicos", "{{tecnico_id}}"] } }
+        }
+      ]
+    },
+    {
+      "name": "Solicitantes (Jandry Cedeño)",
+      "item": [
+        {
+          "name": "Listar solicitantes",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/solicitantes", "host": ["{{base_url}}"], "path": ["solicitantes"] } }
+        },
+        {
+          "name": "Crear solicitante",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usuario_id\": 1,\n  \"matricula\": \"E-2026-0456\",\n  \"nombre\": \"María Vera\",\n  \"facultad\": \"Ciencias de la Vida y Tecnologías\",\n  \"semestre\": 5,\n  \"nivel_urgencia\": \"alta\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/solicitantes", "host": ["{{base_url}}"], "path": ["solicitantes"] }
+          }
+        },
+        {
+          "name": "Obtener solicitante por ID",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/solicitantes/{{solicitante_id}}", "host": ["{{base_url}}"], "path": ["solicitantes", "{{solicitante_id}}"] } }
+        },
+        {
+          "name": "Actualizar solicitante",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"nivel_urgencia\": \"normal\"\n}" },
+            "url": { "raw": "{{base_url}}/solicitantes/{{solicitante_id}}", "host": ["{{base_url}}"], "path": ["solicitantes", "{{solicitante_id}}"] }
+          }
+        },
+        {
+          "name": "Borrar solicitante",
+          "request": { "method": "DELETE", "url": { "raw": "{{base_url}}/solicitantes/{{solicitante_id}}", "host": ["{{base_url}}"], "path": ["solicitantes", "{{solicitante_id}}"] } }
+        },
+        {
+          "name": "Listar dispositivos",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/dispositivos", "host": ["{{base_url}}"], "path": ["dispositivos"] } }
+        },
+        {
+          "name": "Crear dispositivo",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"solicitante_id\": 1,\n  \"marca\": \"HP\",\n  \"modelo\": \"Pavilion 14\",\n  \"tipo_almacenamiento\": \"HDD\",\n  \"ram_gb\": 8,\n  \"sistema_operativo\": \"Windows 11\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/dispositivos", "host": ["{{base_url}}"], "path": ["dispositivos"] }
+          }
+        },
+        {
+          "name": "Obtener dispositivo por ID",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/dispositivos/{{dispositivo_id}}", "host": ["{{base_url}}"], "path": ["dispositivos", "{{dispositivo_id}}"] } }
+        },
+        {
+          "name": "Actualizar dispositivo",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"ram_gb\": 16\n}" },
+            "url": { "raw": "{{base_url}}/dispositivos/{{dispositivo_id}}", "host": ["{{base_url}}"], "path": ["dispositivos", "{{dispositivo_id}}"] }
+          }
+        },
+        {
+          "name": "Borrar dispositivo",
+          "request": { "method": "DELETE", "url": { "raw": "{{base_url}}/dispositivos/{{dispositivo_id}}", "host": ["{{base_url}}"], "path": ["dispositivos", "{{dispositivo_id}}"] } }
+        },
+        {
+          "name": "Listar tickets",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/tickets", "host": ["{{base_url}}"], "path": ["tickets"] } }
+        },
+        {
+          "name": "Crear ticket",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"solicitante_id\": 1,\n  \"dispositivo_id\": 1,\n  \"descripcion_falla\": \"No enciende tras actualización\",\n  \"software_requerido\": \"Reinstalación de SO\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/tickets", "host": ["{{base_url}}"], "path": ["tickets"] }
+          }
+        },
+        {
+          "name": "Obtener ticket por ID",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/tickets/{{ticket_id}}", "host": ["{{base_url}}"], "path": ["tickets", "{{ticket_id}}"] } }
+        },
+        {
+          "name": "Actualizar ticket",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"estado_ticket\": \"en_proceso\"\n}" },
+            "url": { "raw": "{{base_url}}/tickets/{{ticket_id}}", "host": ["{{base_url}}"], "path": ["tickets", "{{ticket_id}}"] }
+          }
+        },
+        {
+          "name": "Borrar ticket",
+          "request": { "method": "DELETE", "url": { "raw": "{{base_url}}/tickets/{{ticket_id}}", "host": ["{{base_url}}"], "path": ["tickets", "{{ticket_id}}"] } }
+        }
+      ]
+    },
+    {
+      "name": "Intervenciones (Mario Soriano)",
+      "item": [
+        {
+          "name": "Listar citas",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/citas", "host": ["{{base_url}}"], "path": ["citas"] } }
+        },
+        {
+          "name": "Crear cita",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"solicitante_id\": \"1\",\n  \"tecnico_id\": \"1\",\n  \"estado\": \"pendiente\",\n  \"hora_acordada\": \"2026-07-10T15:00:00\",\n  \"punto_encuentro\": \"Biblioteca Central\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/citas", "host": ["{{base_url}}"], "path": ["citas"] }
+          }
+        },
+        {
+          "name": "Obtener cita por ID",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/citas/{{cita_id}}", "host": ["{{base_url}}"], "path": ["citas", "{{cita_id}}"] } }
+        },
+        {
+          "name": "Actualizar cita",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"estado\": \"confirmada\"\n}" },
+            "url": { "raw": "{{base_url}}/citas/{{cita_id}}", "host": ["{{base_url}}"], "path": ["citas", "{{cita_id}}"] }
+          }
+        },
+        {
+          "name": "Borrar cita",
+          "request": { "method": "DELETE", "url": { "raw": "{{base_url}}/citas/{{cita_id}}", "host": ["{{base_url}}"], "path": ["citas", "{{cita_id}}"] } }
+        },
+        {
+          "name": "Listar puntos de encuentro",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/puntos-encuentro", "host": ["{{base_url}}"], "path": ["puntos-encuentro"] } }
+        },
+        {
+          "name": "Crear punto de encuentro",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre_lugar\": \"Biblioteca Central\",\n  \"facultad_perteneciente\": \"CCVT\",\n  \"disponible_para_soporte\": true\n}"
+            },
+            "url": { "raw": "{{base_url}}/puntos-encuentro", "host": ["{{base_url}}"], "path": ["puntos-encuentro"] }
+          }
+        },
+        {
+          "name": "Obtener punto de encuentro por ID",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/puntos-encuentro/{{punto_id}}", "host": ["{{base_url}}"], "path": ["puntos-encuentro", "{{punto_id}}"] } }
+        },
+        {
+          "name": "Actualizar punto de encuentro",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"disponible_para_soporte\": false\n}" },
+            "url": { "raw": "{{base_url}}/puntos-encuentro/{{punto_id}}", "host": ["{{base_url}}"], "path": ["puntos-encuentro", "{{punto_id}}"] }
+          }
+        },
+        {
+          "name": "Borrar punto de encuentro",
+          "request": { "method": "DELETE", "url": { "raw": "{{base_url}}/puntos-encuentro/{{punto_id}}", "host": ["{{base_url}}"], "path": ["puntos-encuentro", "{{punto_id}}"] } }
+        },
+        {
+          "name": "Listar soportes",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/soportes", "host": ["{{base_url}}"], "path": ["soportes"] } }
+        },
+        {
+          "name": "Crear soporte (cierre de cita)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cita_id\": 1,\n  \"dispositivo_id\": 1,\n  \"solucion\": \"Reinstalación de SO y limpieza de disco\",\n  \"piezas_cambiadas\": \"ninguna\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/soportes", "host": ["{{base_url}}"], "path": ["soportes"] }
+          }
+        },
+        {
+          "name": "Obtener soporte por ID",
+          "request": { "method": "GET", "url": { "raw": "{{base_url}}/soportes/{{soporte_id}}", "host": ["{{base_url}}"], "path": ["soportes", "{{soporte_id}}"] } }
+        },
+        {
+          "name": "Actualizar soporte",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"solucion\": \"Cambio de disco a SSD\"\n}" },
+            "url": { "raw": "{{base_url}}/soportes/{{soporte_id}}", "host": ["{{base_url}}"], "path": ["soportes", "{{soporte_id}}"] }
+          }
+        },
+        {
+          "name": "Borrar soporte",
+          "request": { "method": "DELETE", "url": { "raw": "{{base_url}}/soportes/{{soporte_id}}", "host": ["{{base_url}}"], "path": ["soportes", "{{soporte_id}}"] } }
+        }
+      ]
+    }
+  ]
+}
