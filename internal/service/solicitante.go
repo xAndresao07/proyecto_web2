@@ -55,8 +55,9 @@ func (s *SolicitanteService) Borrar(id int) error {
 }
 
 func validacionSolicitante(s models.Solicitante) error {
-	if int(s.ID) == 0 || strings.TrimSpace(s.Nombre) == "" || strings.TrimSpace(s.Facultad) == "" || s.Semestre <= 0 {
-		return ErrNombreVacio
+	// Eliminamos 'int(s.ID) == 0 ||' de la validación
+	if strings.TrimSpace(s.Nombre) == "" || strings.TrimSpace(s.Facultad) == "" || s.Semestre <= 0 {
+		return ErrNombreVacio // Asegúrate de que este error devuelva el mensaje "los campos obligatorios no pueden estar vacios"
 	}
 	return nil
 }
