@@ -100,6 +100,21 @@ func (a *AlmacenSQLite) BorrarTicket(id int) bool {
 	return a.db.Delete(&models.TicketAyuda{}, id).RowsAffected > 0
 }
 
+// --- Usuarios ---
+func (a *AlmacenSQLite) CrearUsuario(u models.Usuario) (models.Usuario, error) {
+	err := a.db.Create(&u).Error
+	return u, err
+}
+
+func (a *AlmacenSQLite) BuscarUsuarioPorEmail(email string) (models.Usuario, bool) {
+	var u models.Usuario
+	// Buscamos por email. Si falla (error != nil), devolvemos false.
+	if err := a.db.Where("email = ?", email).First(&u).Error; err != nil {
+		return models.Usuario{}, false
+	}
+	return u, true
+}
+
 func (a *AlmacenSQLite) SembrarSiVacio() {
 	var n int64
 	a.db.Model(&models.Solicitante{}).Count(&n)
@@ -118,7 +133,9 @@ func (a *AlmacenSQLite) SembrarSiVacio() {
 	a.db.Create(&dispositivos)
 
 	tickets := []models.TicketAyuda{
-		{SolicitanteID: 1, DispositivoID: 1, DescripcionFalla: "No enciende", SoftwareRequerido: "Ninguno", EstadoTicket: "abierto"},
+		// ¡Aquí está el ID: 1 que faltaba!
+		{ID: 1, SolicitanteID: 1, DispositivoID: 1, DescripcionFalla: "No enciende", SoftwareRequerido: "Ninguno", EstadoTicket: "abierto"},
 	}
 	a.db.Create(&tickets)
+
 }

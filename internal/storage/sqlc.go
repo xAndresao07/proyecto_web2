@@ -71,7 +71,7 @@ func (a *AlmacenSQLC) BuscarSolicitantePorID(id int) (models.Solicitante, bool) 
 
 func (a *AlmacenSQLC) CrearSolicitante(s models.Solicitante) models.Solicitante {
 	f, err := a.q.CrearSolicitante(context.Background(), sqlcdb.CrearSolicitanteParams{
-		ID:            int64(s.ID),
+		ID:            int64(s.ID), // El ID regresa aquí
 		Nombre:        s.Nombre,
 		Facultad:      s.Facultad,
 		Semestre:      int64(s.Semestre),
@@ -86,7 +86,11 @@ func (a *AlmacenSQLC) CrearSolicitante(s models.Solicitante) models.Solicitante 
 
 func (a *AlmacenSQLC) ActualizarSolicitante(id int, d models.Solicitante) (models.Solicitante, bool) {
 	f, err := a.q.ActualizarSolicitante(context.Background(), sqlcdb.ActualizarSolicitanteParams{
-		Nombre: d.Nombre, Facultad: d.Facultad, Semestre: int64(d.Semestre), NivelUrgencia: d.NivelUrgencia, ID: int64(id),
+		Nombre:        d.Nombre,
+		Facultad:      d.Facultad,
+		Semestre:      int64(d.Semestre),
+		NivelUrgencia: d.NivelUrgencia,
+		ID:            int64(id),
 	})
 	if err != nil {
 		return models.Solicitante{}, false
@@ -119,8 +123,13 @@ func (a *AlmacenSQLC) BuscarDispositivoPorID(id int) (models.Dispositivo, bool) 
 
 func (a *AlmacenSQLC) CrearDispositivo(d models.Dispositivo) models.Dispositivo {
 	f, err := a.q.CrearDispositivo(context.Background(), sqlcdb.CrearDispositivoParams{
-		ID: int64(d.ID), SolicitanteID: int64(d.SolicitanteID), Marca: d.Marca, Modelo: d.Modelo,
-		TipoAlmacenamiento: d.TipoAlmacenamiento, RamGb: int64(d.RamGB), SistemaOperativo: d.SistemaOperativo,
+		ID:                 int64(d.ID), // El ID regresa aquí
+		SolicitanteID:      int64(d.SolicitanteID),
+		Marca:              d.Marca,
+		Modelo:             d.Modelo,
+		TipoAlmacenamiento: d.TipoAlmacenamiento,
+		RamGb:              int64(d.RamGB),
+		SistemaOperativo:   d.SistemaOperativo,
 	})
 	if err != nil {
 		log.Printf("Error SQLC: %v", err)
@@ -131,8 +140,13 @@ func (a *AlmacenSQLC) CrearDispositivo(d models.Dispositivo) models.Dispositivo 
 
 func (a *AlmacenSQLC) ActualizarDispositivo(id int, d models.Dispositivo) (models.Dispositivo, bool) {
 	f, err := a.q.ActualizarDispositivo(context.Background(), sqlcdb.ActualizarDispositivoParams{
-		SolicitanteID: int64(d.SolicitanteID), Marca: d.Marca, Modelo: d.Modelo,
-		TipoAlmacenamiento: d.TipoAlmacenamiento, RamGb: int64(d.RamGB), SistemaOperativo: d.SistemaOperativo, ID: int64(id),
+		SolicitanteID:      int64(d.SolicitanteID),
+		Marca:              d.Marca,
+		Modelo:             d.Modelo,
+		TipoAlmacenamiento: d.TipoAlmacenamiento,
+		RamGb:              int64(d.RamGB),
+		SistemaOperativo:   d.SistemaOperativo,
+		ID:                 int64(id),
 	})
 	if err != nil {
 		return models.Dispositivo{}, false
@@ -147,7 +161,7 @@ func (a *AlmacenSQLC) BorrarDispositivo(id int) bool {
 
 // --- Tickets de Ayuda ---
 func (a *AlmacenSQLC) ListarTickets() []models.TicketAyuda {
-	f, _ := a.q.ListarTickets(context.Background())
+	f, _ := a.q.ListarTicketAyudas(context.Background())
 	out := make([]models.TicketAyuda, 0, len(f))
 	for _, x := range f {
 		out = append(out, aTicket(x))
@@ -156,7 +170,7 @@ func (a *AlmacenSQLC) ListarTickets() []models.TicketAyuda {
 }
 
 func (a *AlmacenSQLC) BuscarTicketPorID(id int) (models.TicketAyuda, bool) {
-	f, err := a.q.BuscarTicketPorID(context.Background(), int64(id))
+	f, err := a.q.BuscarTicketAyudaPorID(context.Background(), int64(id))
 	if err != nil {
 		return models.TicketAyuda{}, false
 	}
@@ -164,9 +178,13 @@ func (a *AlmacenSQLC) BuscarTicketPorID(id int) (models.TicketAyuda, bool) {
 }
 
 func (a *AlmacenSQLC) CrearTicket(t models.TicketAyuda) models.TicketAyuda {
-	f, err := a.q.CrearTicket(context.Background(), sqlcdb.CrearTicketParams{
-		SolicitanteID: int64(t.SolicitanteID), DispositivoID: int64(t.DispositivoID), DescripcionFalla: t.DescripcionFalla,
-		SoftwareRequerido: t.SoftwareRequerido, EstadoTicket: t.EstadoTicket,
+	f, err := a.q.CrearTicketAyuda(context.Background(), sqlcdb.CrearTicketAyudaParams{
+		ID:                int64(t.ID), // El ID regresa aquí
+		SolicitanteID:     int64(t.SolicitanteID),
+		DispositivoID:     int64(t.DispositivoID),
+		DescripcionFalla:  t.DescripcionFalla,
+		SoftwareRequerido: t.SoftwareRequerido,
+		EstadoTicket:      t.EstadoTicket,
 	})
 	if err != nil {
 		log.Printf("Error SQLC: %v", err)
@@ -176,9 +194,13 @@ func (a *AlmacenSQLC) CrearTicket(t models.TicketAyuda) models.TicketAyuda {
 }
 
 func (a *AlmacenSQLC) ActualizarTicket(id int, t models.TicketAyuda) (models.TicketAyuda, bool) {
-	f, err := a.q.ActualizarTicket(context.Background(), sqlcdb.ActualizarTicketParams{
-		SolicitanteID: int64(t.SolicitanteID), DispositivoID: int64(t.DispositivoID), DescripcionFalla: t.DescripcionFalla,
-		SoftwareRequerido: t.SoftwareRequerido, EstadoTicket: t.EstadoTicket, ID: int64(id),
+	f, err := a.q.ActualizarTicketAyuda(context.Background(), sqlcdb.ActualizarTicketAyudaParams{
+		SolicitanteID:     int64(t.SolicitanteID),
+		DispositivoID:     int64(t.DispositivoID),
+		DescripcionFalla:  t.DescripcionFalla,
+		SoftwareRequerido: t.SoftwareRequerido,
+		EstadoTicket:      t.EstadoTicket,
+		ID:                int64(id),
 	})
 	if err != nil {
 		return models.TicketAyuda{}, false
@@ -187,7 +209,7 @@ func (a *AlmacenSQLC) ActualizarTicket(id int, t models.TicketAyuda) (models.Tic
 }
 
 func (a *AlmacenSQLC) BorrarTicket(id int) bool {
-	n, err := a.q.BorrarTicket(context.Background(), int64(id))
+	n, err := a.q.BorrarTicketAyuda(context.Background(), int64(id))
 	return err == nil && n > 0
 }
 

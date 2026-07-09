@@ -231,12 +231,13 @@ func (q *Queries) BuscarUsuarioPorEmail(ctx context.Context, email string) (Usua
 }
 
 const crearDispositivo = `-- name: CrearDispositivo :one
-INSERT INTO dispositivos (solicitante_id, marca, modelo, tipo_almacenamiento, ram_gb, sistema_operativo)
-VALUES (?, ?, ?, ?, ?, ?)
+INSERT INTO dispositivos (id, solicitante_id, marca, modelo, tipo_almacenamiento, ram_gb, sistema_operativo)
+VALUES (?, ?, ?, ?, ?, ?, ?)
 RETURNING id, solicitante_id, marca, modelo, tipo_almacenamiento, ram_gb, sistema_operativo
 `
 
 type CrearDispositivoParams struct {
+	ID                 int64
 	SolicitanteID      int64
 	Marca              string
 	Modelo             string
@@ -247,6 +248,7 @@ type CrearDispositivoParams struct {
 
 func (q *Queries) CrearDispositivo(ctx context.Context, arg CrearDispositivoParams) (Dispositivo, error) {
 	row := q.db.QueryRowContext(ctx, crearDispositivo,
+		arg.ID,
 		arg.SolicitanteID,
 		arg.Marca,
 		arg.Modelo,
@@ -268,12 +270,13 @@ func (q *Queries) CrearDispositivo(ctx context.Context, arg CrearDispositivoPara
 }
 
 const crearSolicitante = `-- name: CrearSolicitante :one
-INSERT INTO solicitantes (nombre, facultad, semestre, nivel_urgencia)
-VALUES (?, ?, ?, ?)
+INSERT INTO solicitantes (id, nombre, facultad, semestre, nivel_urgencia)
+VALUES (?, ?, ?, ?, ?)
 RETURNING id, nombre, facultad, semestre, nivel_urgencia
 `
 
 type CrearSolicitanteParams struct {
+	ID            int64
 	Nombre        string
 	Facultad      string
 	Semestre      int64
@@ -282,6 +285,7 @@ type CrearSolicitanteParams struct {
 
 func (q *Queries) CrearSolicitante(ctx context.Context, arg CrearSolicitanteParams) (Solicitante, error) {
 	row := q.db.QueryRowContext(ctx, crearSolicitante,
+		arg.ID,
 		arg.Nombre,
 		arg.Facultad,
 		arg.Semestre,
@@ -299,12 +303,13 @@ func (q *Queries) CrearSolicitante(ctx context.Context, arg CrearSolicitantePara
 }
 
 const crearTicketAyuda = `-- name: CrearTicketAyuda :one
-INSERT INTO ticket_ayudas (solicitante_id, dispositivo_id, descripcion_falla, software_requerido, estado_ticket)
-VALUES (?, ?, ?, ?, ?)
+INSERT INTO ticket_ayudas (id, solicitante_id, dispositivo_id, descripcion_falla, software_requerido, estado_ticket)
+VALUES (?, ?, ?, ?, ?, ?)
 RETURNING id, solicitante_id, dispositivo_id, descripcion_falla, software_requerido, estado_ticket
 `
 
 type CrearTicketAyudaParams struct {
+	ID                int64
 	SolicitanteID     int64
 	DispositivoID     int64
 	DescripcionFalla  string
@@ -314,6 +319,7 @@ type CrearTicketAyudaParams struct {
 
 func (q *Queries) CrearTicketAyuda(ctx context.Context, arg CrearTicketAyudaParams) (TicketAyuda, error) {
 	row := q.db.QueryRowContext(ctx, crearTicketAyuda,
+		arg.ID,
 		arg.SolicitanteID,
 		arg.DispositivoID,
 		arg.DescripcionFalla,
@@ -334,12 +340,13 @@ func (q *Queries) CrearTicketAyuda(ctx context.Context, arg CrearTicketAyudaPara
 
 const crearUsuario = `-- name: CrearUsuario :one
 
-INSERT INTO usuarios (email, password, rol)
-VALUES (?, ?, ?)
+INSERT INTO usuarios (id, email, password, rol)
+VALUES (?, ?, ?, ?)
 RETURNING id, email, password, rol
 `
 
 type CrearUsuarioParams struct {
+	ID       int64
 	Email    string
 	Password string
 	Rol      string
@@ -347,7 +354,12 @@ type CrearUsuarioParams struct {
 
 // ===================== USUARIOS =====================
 func (q *Queries) CrearUsuario(ctx context.Context, arg CrearUsuarioParams) (Usuario, error) {
-	row := q.db.QueryRowContext(ctx, crearUsuario, arg.Email, arg.Password, arg.Rol)
+	row := q.db.QueryRowContext(ctx, crearUsuario,
+		arg.ID,
+		arg.Email,
+		arg.Password,
+		arg.Rol,
+	)
 	var i Usuario
 	err := row.Scan(
 		&i.ID,
