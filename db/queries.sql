@@ -8,8 +8,8 @@ SELECT id, nombre, facultad, semestre, nivel_urgencia FROM solicitantes
 WHERE id = ?;
 
 -- name: CrearSolicitante :one
-INSERT INTO solicitantes (nombre, facultad, semestre, nivel_urgencia)
-VALUES (?, ?, ?, ?)
+INSERT INTO solicitantes (id, nombre, facultad, semestre, nivel_urgencia)
+VALUES (?, ?, ?, ?, ?)
 RETURNING id, nombre, facultad, semestre, nivel_urgencia;
 
 -- name: ActualizarSolicitante :one
@@ -31,8 +31,8 @@ SELECT id, solicitante_id, marca, modelo, tipo_almacenamiento, ram_gb, sistema_o
 WHERE id = ?;
 
 -- name: CrearDispositivo :one
-INSERT INTO dispositivos (solicitante_id, marca, modelo, tipo_almacenamiento, ram_gb, sistema_operativo)
-VALUES (?, ?, ?, ?, ?, ?)
+INSERT INTO dispositivos (id, solicitante_id, marca, modelo, tipo_almacenamiento, ram_gb, sistema_operativo)
+VALUES (?, ?, ?, ?, ?, ?, ?)
 RETURNING id, solicitante_id, marca, modelo, tipo_almacenamiento, ram_gb, sistema_operativo;
 
 -- name: ActualizarDispositivo :one
@@ -54,8 +54,8 @@ SELECT id, solicitante_id, dispositivo_id, descripcion_falla, software_requerido
 WHERE id = ?;
 
 -- name: CrearTicketAyuda :one
-INSERT INTO ticket_ayudas (solicitante_id, dispositivo_id, descripcion_falla, software_requerido, estado_ticket)
-VALUES (?, ?, ?, ?, ?)
+INSERT INTO ticket_ayudas (id, solicitante_id, dispositivo_id, descripcion_falla, software_requerido, estado_ticket)
+VALUES (?, ?, ?, ?, ?, ?)
 RETURNING id, solicitante_id, dispositivo_id, descripcion_falla, software_requerido, estado_ticket;
 
 -- name: ActualizarTicketAyuda :one
@@ -70,8 +70,8 @@ DELETE FROM ticket_ayudas WHERE id = ?;
 -- ===================== USUARIOS =====================
 
 -- name: CrearUsuario :one
-INSERT INTO usuarios (email, password, rol)
-VALUES (?, ?, ?)
+INSERT INTO usuarios (id, email, password, rol)
+VALUES (?, ?, ?, ?)
 RETURNING id, email, password, rol;
 
 -- name: BuscarUsuarioPorEmail :one
