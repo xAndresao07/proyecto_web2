@@ -16,3 +16,4 @@ type Solicitante struct {
 	// Relaciones (Has-Many)
 	Dispositivos []Dispositivo `json:"dispositivos,omitempty" gorm:"foreignKey:SolicitanteID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	Tickets      []TicketAyuda `json:"tickets,omitempty" gorm:"foreignKey:SolicitanteID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+}

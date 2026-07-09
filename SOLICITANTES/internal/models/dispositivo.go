@@ -15,3 +15,4 @@ type Dispositivo struct {
 
 	// Relación (Belongs-To)
 	Solicitante *Solicitante `json:"solicitante,omitempty" gorm:"foreignKey:SolicitanteID"`
+}

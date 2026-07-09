@@ -16,3 +16,4 @@ type TicketAyuda struct {
 	// Relaciones (Belongs-To)
 	Solicitante *Solicitante `json:"solicitante,omitempty" gorm:"foreignKey:SolicitanteID"`
 	Dispositivo *Dispositivo `json:"dispositivo,omitempty" gorm:"foreignKey:DispositivoID"`
+}
