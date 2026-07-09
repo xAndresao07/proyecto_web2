@@ -1,0 +1,12 @@
+# Binarios y base de datos local
+/api
+*.exe
+*.db
+*.db-journal
+
+# Cobertura
+*.out
+coverage.html
+
+# Variables de entorno (no subir secretos)
+.env

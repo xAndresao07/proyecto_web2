@@ -1,0 +1,35 @@
+# Orquesta dos servicios: la API y PostgreSQL.
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: soporte
+      POSTGRES_PASSWORD: soporte
+      POSTGRES_DB: soporte
+    ports:
+      - "5432:5432"
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U soporte -d soporte"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build: .
+    environment:
+      PUERTO: ":8088"
+      DB_DRIVER: postgres
+      DB_DSN: "host=db user=soporte password=soporte dbname=soporte port=5432 sslmode=disable TimeZone=America/Guayaquil"
+      JWT_SECRETO: "cambia-esto-en-produccion"
+      STORAGE: gorm
+    ports:
+      - "8088:8088"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  dbdata:
